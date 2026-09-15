@@ -1,6 +1,15 @@
 # usb-cracker - Changes <!-- omit in toc -->
 
 
+## 0.0.9 - 15th September 2026
+
+* added **lib/usb_cracker/search.rb**: candidate loop with **Unlock.attempt** per suffix; fail-closed result policy;
+* success prints only the suffix on stdout (exit 0); exhaustion / busy / wrong-target / error / already-unlocked abort non-zero with non-secret messages;
+* **--trace-suffixes** / **-T** opt-in **Pantheios** console tracing of attempted suffixes (never PREFIX); default off; no file logging;
+* **exe/usb-cracker** wires parse → PREFIX → Search → suffix-only report;
+* unit tests with injected unlock and log (**test/unit/tc_search.rb**);
+
+
 ## 0.0.8 - 15th September 2026
 
 * added **lib/usb_cracker/diskutil.rb**: `diskutil` unlockVolume argv builder (APFS and Core Storage), **Open3** runner, and stdout/stderr classifier;

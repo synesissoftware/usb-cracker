@@ -33,13 +33,16 @@ Required: **volume** and `--key-name`. After argv parse the program
 prompts twice for PREFIX on a TTY (hidden input; confirm must match; never
 from env, files, or argv). Bounded brute-force is off unless both
 `--charset` and `--max-suffix-len` are supplied. Unlock is macOS
-**diskutil**-driven; the candidate search loop is not in this release.
+**diskutil**-driven. On success stdout is **only** the matching suffix
+(exit 0). `--trace-suffixes` logs each attempted suffix to the console
+(partial secret; off by default; see [SECURITY.md](./SECURITY.md)).
 
 ```
 usb-cracker --help
 usb-cracker --version
 usb-cracker <volume> --key-name <name>
 usb-cracker <volume> --key-name <name> --charset <chars> --max-suffix-len <n>
+usb-cracker <volume> --key-name <name> --trace-suffixes
 ```
 
 

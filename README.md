@@ -39,11 +39,12 @@ third-party devices, and it does not target hardware crypto sticks. Unlock
 attempts are driven via macOS `diskutil` as a child process (no private
 Apple frameworks).
 
-This **0.0.8** release prompts twice for the long secret PREFIX (hidden
-input, TTY only; both entries must match) and holds it in a wipeable
-in-memory buffer. Argv parse, suffix-candidate enumeration, and a
-`diskutil` unlock adapter live in **lib/**. The candidate search loop is
-not implemented yet.
+This **0.0.9** release prompts twice for the long secret PREFIX (hidden
+input, TTY only; both entries must match), enumerates suffix candidates,
+and attempts unlock via macOS `diskutil`. On success it prints **only**
+the matching suffix to stdout (exit 0). PREFIX is wiped on every exit
+path. Opt-in `--trace-suffixes` logs each attempted suffix (never PREFIX)
+to the console for smoke-testing.
 
 
 ## Installation
@@ -66,6 +67,7 @@ usb-cracker --version
 usb-cracker <volume> --key-name <name>
 usb-cracker <volume> --key-name <name> --charset <chars> --max-suffix-len <n>
 usb-cracker <volume> --key-name <name> --no-bruteforce
+usb-cracker <volume> --key-name <name> --trace-suffixes
 ```
 
 Required: **volume** (device id or UUID) and `--key-name` / `-k` (informed
@@ -79,8 +81,29 @@ brute-force is off unless **both** `--charset` / `-c` and
 `--max-suffix-len` / `-m` (integer > 0) are supplied; supplying only one
 is an error. `--no-bruteforce` / `-n` disables brute-force even when both
 bounds are present. Unlock is macOS **diskutil**-driven (APFS first, Core
-Storage when APFS does not apply; passphrase on stdin, never argv). The
-candidate search loop lands in a later release.
+Storage when APFS does not apply; passphrase on stdin, never argv).
+
+On success the program writes **only** the matching suffix to stdout
+(plus a newline) and exits 0 — no PREFIX, and no labels that include the
+secret — so the output is safe to pipe. Other outcomes abort with a
+non-secret stderr line and a non-zero status:
+
+| Unlock result      | Action                                      |
+| ------------------ | ------------------------------------------- |
+| `:success`         | print suffix to stdout; exit 0              |
+| `:auth_failed`     | try the next candidate                      |
+| `:already_unlocked`| abort; volume already unlocked (no suffix)  |
+| `:busy`            | abort immediately                           |
+| `:wrong_target`    | abort immediately                           |
+| `:error`           | abort immediately                           |
+| (exhausted)        | abort; no matching suffix                   |
+
+`--trace-suffixes` / `-T` is **off** by default. When enabled, each
+attempted suffix (a **partial secret**), attempt index, and unlock status
+are logged to the **Pantheios** console sink (terminal / scrollback).
+PREFIX and the full passphrase are never logged. There is no file logging
+by default — a file sink would persist partial secrets. See
+[SECURITY.md](./SECURITY.md).
 
 
 ## Project Information

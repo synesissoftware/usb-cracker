@@ -47,6 +47,7 @@ class Test_cli < Test::Unit::TestCase
     assert_nil options.max_suffix_len
     assert_false options.no_bruteforce?
     assert_false options.bruteforce?
+    assert_false options.trace_suffixes?
   end
 
   def test_happy_path_key_name_alias
@@ -208,6 +209,28 @@ class Test_cli < Test::Unit::TestCase
     assert_false options.bruteforce?
     assert_equal 'abc', options.charset
     assert_equal 2, options.max_suffix_len
+  end
+
+  def test_trace_suffixes_flag
+
+    options = cli_parse([
+      'disk2s1',
+      '--key-name', 'office',
+      '--trace-suffixes',
+    ])
+
+    assert_true options.trace_suffixes?
+  end
+
+  def test_trace_suffixes_alias
+
+    options = cli_parse([
+      'disk2s1',
+      '-k', 'office',
+      '-T',
+    ])
+
+    assert_true options.trace_suffixes?
   end
 
   def test_no_bruteforce_alias_with_incomplete_bounds_fails

@@ -38,12 +38,14 @@ module UsbCracker
     end
 
     # Parsed CLI options. Brute-force is enabled only when both bounds
-    # are supplied and `--no-bruteforce` is not set.
+    # are supplied and `--no-bruteforce` is not set. `--trace-suffixes`
+    # is off unless the flag is given.
     Options = Struct.new(
       :charset,
       :key_name,
       :max_suffix_len,
       :no_bruteforce,
+      :trace_suffixes,
       :volume,
       keyword_init: true,
     ) do
@@ -54,6 +56,7 @@ module UsbCracker
       end
 
       alias_method :no_bruteforce?, :no_bruteforce
+      alias_method :trace_suffixes?, :trace_suffixes
     end
 
     class << self
@@ -76,6 +79,7 @@ module UsbCracker
           max_suffix_len: nil,
           max_suffix_len_given: false,
           no_bruteforce: false,
+          trace_suffixes: false,
         }
 
         abort_exit = opts.key?(:abort_exit) ? opts[:abort_exit] : 1
@@ -161,6 +165,11 @@ module UsbCracker
 
             collected[:no_bruteforce] = true
           end
+
+          cl.add_flag('--trace-suffixes', alias: '-T', help: 'log each attempted suffix (a partial secret) to the console diagnostic sink / terminal scrollback; default off; never logs PREFIX') do
+
+            collected[:trace_suffixes] = true
+          end
         end
       end
 
@@ -211,6 +220,7 @@ module UsbCracker
           key_name: key_name,
           max_suffix_len: max_suffix_len,
           no_bruteforce: collected[:no_bruteforce],
+          trace_suffixes: collected[:trace_suffixes],
           volume: volume,
         )
       end

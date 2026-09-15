@@ -9,9 +9,11 @@
 * [x] ~~~Optional bounded brute-force fallback (charset + max length; fail closed)~~~ - ✅;
 * [x] ~~~Unlock via macOS `diskutil` child process (APFS, then Core Storage)~~~ - ✅;
 * [x] ~~~Avoid exposing the passphrase on process argv~~~ - ✅;
-* [ ] On success print only the successful SUFFIX; exit codes correct;
+* [x] ~~~On success print only the successful SUFFIX; exit codes correct~~~ - ✅;
+* [x] ~~~Opt-in **--trace-suffixes** (Pantheios console; suffix only, never PREFIX)~~~ - ✅;
 * [x] ~~~Unit tests for CLI parsing~~~ - ✅;
 * [x] ~~~Unit tests for candidate generation~~~ - ✅;
+* [x] ~~~Unit tests for the search loop (injected unlock / log)~~~ - ✅;
 * [x] ~~~Component tests with mocked `diskutil` / Open3~~~ - ✅;
 
 

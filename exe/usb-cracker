@@ -19,6 +19,7 @@ $:.unshift File.join(File.dirname(__FILE__), '..', 'lib')
 
 require 'usb_cracker/cli'
 require 'usb_cracker/prefix'
+require 'usb_cracker/search'
 
 
 # ##########################################################
@@ -33,11 +34,11 @@ end
 
 options = UsbCracker::Cli.parse ARGV
 
-UsbCracker::Prefix.read! do |_prefix|
+UsbCracker::Prefix.read! do |prefix|
 
-  # Step 5 will search with +options+ here (Unlock.attempt per candidate);
-  # PREFIX is wiped in ensure even on abort.
-  UsbCracker::Cli.abort 'suffix search is not implemented in this scaffold release'
+  outcome = UsbCracker::Search.run(options, prefix)
+
+  UsbCracker::Search.report(outcome)
 end
 
 

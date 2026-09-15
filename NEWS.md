@@ -2,6 +2,7 @@
 
 | Date                | News Item             | Details |
 | ------------------- | --------------------- | ------- |
+| 15th September 2026 | **usb-cracker** 0.0.9 | end-to-end suffix search; suffix-only stdout; --trace-suffixes |
 | 15th September 2026 | **usb-cracker** 0.0.8 | diskutil unlock adapter; passphrase via stdin, not argv |
 | 15th September 2026 | **usb-cracker** 0.0.7 | PREFIX usage failures via Cli.abort (no Ruby backtrace) |
 | 15th September 2026 | **usb-cracker** 0.0.6 | confirmed double PREFIX prompt; mismatch fails closed |

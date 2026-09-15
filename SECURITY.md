@@ -6,6 +6,7 @@
 - [Reporting a vulnerability](#reporting-a-vulnerability)
 - [Secret handling](#secret-handling)
 - [Passphrase transport](#passphrase-transport)
+- [Suffix tracing](#suffix-tracing)
 - [Supported versions](#supported-versions)
 
 
@@ -25,13 +26,16 @@ The long passphrase PREFIX is prompted **twice** via hidden TTY input
 (**IO#getpass**; `Prefix: ` then `Confirm prefix: `) and accepted only when
 both entries match, so a mistype cannot drive a long unlock search. It is
 held only in a mutable in-memory buffer (**SecretBuffer**); the confirmation
-copy is wiped immediately, and the buffer is best-effort wiped on exit paths
-(including the current search-not-implemented abort). PREFIX is never read
-from the environment, files, or CLI flags, and must never be written to
-disk, logs, history files, crash artefacts, or configuration. Usage errors
-and **inspect** omit the secret.
+copy is wiped immediately, and the buffer is best-effort wiped on exit
+paths (including the search-loop abort paths). PREFIX is never read from
+the environment, files, or CLI flags, and must never be written to disk,
+logs, history files, crash artefacts, or configuration. Usage errors and
+**inspect** omit the secret.
 
-Later releases will print only a successful suffix on success.
+On success the program prints **only** the matching suffix to stdout
+(plus a newline) and exits 0. Failure paths emit a canned, non-secret
+stderr line and a non-zero status — they never echo PREFIX or a guessed
+suffix.
 
 
 ## Passphrase transport
@@ -46,6 +50,24 @@ file is used (that would write the secret to disk).
 The ephemeral full-passphrase buffer is best-effort wiped after the child
 returns. **Unlock::Result** carries only a status symbol and a canned,
 non-secret detail — never PREFIX, suffix, or the concatenation.
+
+
+## Suffix tracing
+
+`--trace-suffixes` / `-T` is **opt-in** and **off** by default. When
+enabled, each attempted **suffix** (a partial secret), a 1-based attempt
+index, and the unlock status are logged via **Pantheios** to the **console**
+(terminal / scrollback). PREFIX, PREFIX+suffix, and **SecretBuffer**
+contents are never logged.
+
+This flag exists for operator smoke-testing. Treat the diagnostic sink as
+secret-bearing: terminal scrollback, tmux/screen history, and copied log
+fragments can leak suffix material. Do not redirect tracing to a file.
+There is no file logging by default; a file sink would persist partial
+secrets and would require a separate explicit flag if ever added.
+
+Success output is unchanged when tracing is on: stdout is still **only**
+the matching suffix.
 
 
 ## Supported versions
