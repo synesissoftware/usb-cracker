@@ -39,9 +39,10 @@ third-party devices, and it does not target hardware crypto sticks. Unlock
 attempts will be driven via macOS `diskutil` as a child process (no private
 Apple frameworks).
 
-This **0.0.3** release parses and validates argv in **lib/** (required
-**volume** value and `--key-name`; fail-closed brute-force bounds). Search
-and unlock behaviour is not implemented yet.
+This **0.0.4** release parses argv in **lib/** and enumerates suffix
+candidates: unique permutations of `--key-name`, then (when brute-force
+bounds are enabled) a bounded scan over `--charset`. PREFIX prompt and
+unlock behaviour are not implemented yet.
 
 
 ## Installation
@@ -67,10 +68,13 @@ usb-cracker <volume> --key-name <name> --no-bruteforce
 ```
 
 Required: **volume** (device id or UUID) and `--key-name` / `-k` (informed
-search). Bounded brute-force is off unless **both** `--charset` / `-c` and
-`--max-suffix-len` / `-m` (integer > 0) are supplied; supplying only one is an
-error. `--no-bruteforce` / `-n` disables brute-force even when both bounds are
-present. Unlock behaviour lands in a later release.
+search). Search order is unique permutations of `--key-name`, then — when
+brute-force is enabled — all non-empty strings of length 1..`--max-suffix-len`
+over `--charset` (charset order; suffixes already produced as permutations
+are skipped). Bounded brute-force is off unless **both** `--charset` / `-c`
+and `--max-suffix-len` / `-m` (integer > 0) are supplied; supplying only one
+is an error. `--no-bruteforce` / `-n` disables brute-force even when both
+bounds are present. Unlock behaviour lands in a later release.
 
 
 ## Project Information

@@ -5,13 +5,13 @@
 
 * [ ] Prompt once for the long secret PREFIX (hidden input); never persist it;
 * [x] ~~~CLI argv: required **volume** value; **--key-name**; fail-closed brute-force bounds~~~ - ✅;
-* [ ] Informed search: unique permutations of the key-name suffix;
-* [ ] Optional bounded brute-force fallback (charset + max length; fail closed);
+* [x] ~~~Informed search: unique permutations of the key-name suffix~~~ - ✅;
+* [x] ~~~Optional bounded brute-force fallback (charset + max length; fail closed)~~~ - ✅;
 * [ ] Unlock via macOS `diskutil` child process (APFS, then Core Storage);
 * [ ] Avoid exposing the passphrase on process argv;
 * [ ] On success print only the successful SUFFIX; exit codes correct;
 * [x] ~~~Unit tests for CLI parsing~~~ - ✅;
-* [ ] Unit tests for candidate generation;
+* [x] ~~~Unit tests for candidate generation~~~ - ✅;
 * [ ] Component tests with mocked `diskutil` / Open3;
 
 

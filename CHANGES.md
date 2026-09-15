@@ -1,6 +1,13 @@
 # usb-cracker - Changes <!-- omit in toc -->
 
 
+## 0.0.4 - 15th September 2026
+
+* added **lib/usb_cracker/candidates.rb**: unique **key_name** permutations (lexicographic), then optional bounded brute-force suffixes;
+* brute-force is generated only when **Options#bruteforce?**; lengths 1..**max_suffix_len** over **charset** order; duplicates across phases skipped; empty suffix is not tried;
+* unit tests for candidate generation (**test/unit/tc_candidates.rb**);
+
+
 ## 0.0.3 - 15th September 2026
 
 * extracted **LibCLImate** argv parse/validate into **lib/usb_cracker/cli.rb**; **exe/usb-cracker** stays orchestration-only;
