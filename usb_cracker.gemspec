@@ -39,7 +39,8 @@ END_DESC
   # Proprietary (see LICENSE). Not an SPDX open-source identifier; omitted
   # from RubyGems metadata because this gem is not published publicly.
 
-  spec.required_ruby_version = [ '>= 2.0', '< 5' ]
+  # highline 3.x requires Ruby >= 3.0
+  spec.required_ruby_version = [ '>= 3.0', '< 5' ]
 
   spec.bindir = 'exe'
   spec.executables = [
@@ -65,6 +66,13 @@ END_DESC
     '.ruby-version',
     'Gemfile.lock',
   ]
+
+  spec.add_dependency 'clasp-ruby', [ '~> 0.23', '>= 0.23.0.2' ]
+  spec.add_dependency 'highline', [ '~> 3.0' ]
+  spec.add_dependency 'libclimate-ruby', [ '~> 0.17' ]
+  spec.add_dependency 'pantheios-ruby', [ '~> 0.22' ]
+  spec.add_dependency 'recls-ruby', [ '~> 2.13' ]
+  spec.add_dependency 'xqsr3', [ '~> 0.39', '>= 0.39.5' ]
 end
 
 

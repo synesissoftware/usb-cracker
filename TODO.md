@@ -23,6 +23,7 @@
 
 * [x] ~~~Ruby gem boilerplate (gemspec, **Gemfile** `lockfile false`, **ruby.yml**, docs set)~~~ - ✅;
 * [x] ~~~document as **private** (no RubyGems.org / public homepage metadata)~~~ - ✅;
+* [x] ~~~integrate **misc-dev-scripts** Ruby exemplars; **LibCLImate** CLI; runtime deps~~~ - ✅;
 * [ ] When a private remote exists: restore gemspec homepage/metadata URIs and optional CI badge;
 
 

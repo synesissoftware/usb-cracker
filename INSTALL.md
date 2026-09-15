@@ -11,7 +11,7 @@
 ## From a source checkout
 
 **usb-cracker** is a private project and is **not** published to
-RubyGems.org.
+RubyGems.org. Requires **Ruby** >= 3.0.
 
 ```
 bundle install

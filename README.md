@@ -38,8 +38,8 @@ third-party devices, and it does not target hardware crypto sticks. Unlock
 attempts will be driven via macOS `diskutil` as a child process (no private
 Apple frameworks).
 
-This **0.0.1** release is packaging and documentation scaffolding only; the
-search and unlock behaviour is not implemented yet.
+This **0.0.2** release wires the CLI through **LibCLImate** and declares
+runtime dependencies; search and unlock behaviour is not implemented yet.
 
 
 ## Installation
@@ -90,7 +90,12 @@ Libraries upon which **usb-cracker** depends:
 
 ##### Runtime Dependencies (aka "Normal Dependencies")
 
-* \<none>;
+* [**clasp-ruby**](https://rubygems.org/gems/clasp-ruby);
+* [**highline**](https://rubygems.org/gems/highline);
+* [**libclimate-ruby**](https://rubygems.org/gems/libclimate-ruby);
+* [**pantheios-ruby**](https://rubygems.org/gems/pantheios-ruby);
+* [**recls-ruby**](https://rubygems.org/gems/recls-ruby);
+* [**xqsr3**](https://rubygems.org/gems/xqsr3);
 
 
 ##### Development Dependencies

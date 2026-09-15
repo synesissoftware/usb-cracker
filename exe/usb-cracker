@@ -4,46 +4,95 @@
 # ######################################################################## #
 # File:     exe/usb-cracker
 #
-# Purpose:  Entry point for the usb-cracker CLI (stub in 0.0.1)
+# Purpose:  Entry point for the usb-cracker CLI (scaffold)
 #
 # Created:  9th September 2026
-# Updated:  9th September 2026
+# Updated:  15th September 2026
 #
 # ######################################################################## #
 
+
+# ##########################################################
+# requires
+
 $:.unshift File.join(File.dirname(__FILE__), '..', 'lib')
+
+require 'libclimate'
 
 require 'usb_cracker/version'
 
 
-def usage
+# ##########################################################
+# constants
 
-  $stdout.puts <<END_USAGE
-usb-cracker #{UsbCracker::VERSION}
+PROGRAM_VER_MAJOR   = UsbCracker::VERSION_MAJOR
+PROGRAM_VER_MINOR   = UsbCracker::VERSION_MINOR
+PROGRAM_VER_PATCH   = UsbCracker::VERSION_REVISION
 
-Usage:
-  usb-cracker --version
-  usb-cracker --help
 
-Recovering passphrase suffixes is not implemented in this scaffold release.
-END_USAGE
+# ##########################################################
+# command-line handling
+
+options = {}
+
+climate = LibCLImate::Climate.new do |cl|
+
+  cl.info_lines = [
+
+    'usb-cracker',
+    'Copyright (c) 2026, Matthew Wilson and Synesis Information Systems',
+    :version,
+    "Recover forgotten suffixes on the operator's own encrypted USB volumes",
+    '',
+  ]
+
+  cl.usage_values = nil
+
+  cl.version = [ PROGRAM_VER_MAJOR, PROGRAM_VER_MINOR, PROGRAM_VER_PATCH ]
+
+  # Flags reserved for later search/unlock work (declared so --help shows
+  # the intended surface; behaviour is not implemented in this release).
+
+  cl.add_option('--volume', help: 'volume device id or UUID to unlock') do |o, _a|
+
+    options[:volume] = o.value
+  end
+
+  cl.add_option('--key-name', alias: '-k', help: 'key-name string whose permutations form informed suffixes') do |o, _a|
+
+    options[:key_name] = o.value
+  end
+
+  cl.add_option('--charset', alias: '-c', help: 'character set for optional bounded brute-force suffixes') do |o, _a|
+
+    options[:charset] = o.value
+  end
+
+  cl.add_option('--max-suffix-len', alias: '-m', help: 'maximum length for optional bounded brute-force suffixes') do |o, _a|
+
+    options[:max_suffix_len] = Integer(o.value)
+  end
+
+  cl.add_flag('--no-bruteforce', alias: '-n', help: 'disable optional bounded brute-force fallback') do
+
+    options[:no_bruteforce] = true
+  end
+
+  trap 'INT' do
+
+    $stderr.puts ''
+
+    cl.abort 'processing cancelled ...', exit: 130
+  end
 end
 
+climate.run ARGV
 
-case ARGV[0]
-when '-h', '--help', nil
 
-  usage
-  exit 0
-when '-v', '--version'
+# ##########################################################
+# main()
 
-  $stdout.puts UsbCracker::VERSION
-  exit 0
-else
-
-  $stderr.puts "usb-cracker: unknown option #{ARGV[0].inspect} (scaffold; see --help)"
-  exit 1
-end
+climate.abort 'search and unlock are not implemented in this scaffold release'
 
 
 # ############################## end of file ############################# #
