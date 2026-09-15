@@ -1,0 +1,2 @@
+usb-cracker is a macOS CLI for recovering forgotten suffixes on the operator's own encrypted USB volumes
+Copyright (c) 2026, Matthew Wilson and Synesis Information Systems

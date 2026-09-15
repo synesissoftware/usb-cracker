@@ -1,0 +1,49 @@
+#! /usr/bin/env ruby
+# frozen_string_literal: true
+
+# ######################################################################## #
+# File:     exe/usb-cracker
+#
+# Purpose:  Entry point for the usb-cracker CLI (stub in 0.0.1)
+#
+# Created:  9th September 2026
+# Updated:  9th September 2026
+#
+# ######################################################################## #
+
+$:.unshift File.join(File.dirname(__FILE__), '..', 'lib')
+
+require 'usb_cracker/version'
+
+
+def usage
+
+  $stdout.puts <<END_USAGE
+usb-cracker #{UsbCracker::VERSION}
+
+Usage:
+  usb-cracker --version
+  usb-cracker --help
+
+Recovering passphrase suffixes is not implemented in this scaffold release.
+END_USAGE
+end
+
+
+case ARGV[0]
+when '-h', '--help', nil
+
+  usage
+  exit 0
+when '-v', '--version'
+
+  $stdout.puts UsbCracker::VERSION
+  exit 0
+else
+
+  $stderr.puts "usb-cracker: unknown option #{ARGV[0].inspect} (scaffold; see --help)"
+  exit 1
+end
+
+
+# ############################## end of file ############################# #
