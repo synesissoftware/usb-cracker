@@ -29,10 +29,14 @@ gem install --local usb_cracker-*.gem
 
 ## Using the CLI
 
+Required: **volume** and `--key-name`. Bounded brute-force is off unless
+both `--charset` and `--max-suffix-len` are supplied.
+
 ```
 usb-cracker --help
 usb-cracker --version
 usb-cracker <volume> --key-name <name>
+usb-cracker <volume> --key-name <name> --charset <chars> --max-suffix-len <n>
 ```
 
 

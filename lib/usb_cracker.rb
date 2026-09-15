@@ -27,6 +27,7 @@ module UsbCracker
 
 end # module UsbCracker
 
+require 'usb_cracker/cli'
 require 'usb_cracker/version'
 
 

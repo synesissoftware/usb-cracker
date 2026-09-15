@@ -4,6 +4,7 @@ macOS CLI for recovering forgotten suffixes on the operator's own encrypted USB 
 
 ![Language](https://img.shields.io/badge/Ruby-CC342D?style=flat&logo=ruby&logoColor=white)
 ![License](https://img.shields.io/badge/license-proprietary-lightgrey)
+[![GitHub release](https://img.shields.io/github/v/release/synesissoftware/usb-cracker.svg)](https://github.com/synesissoftware/usb-cracker/releases/latest)
 ![Visibility](https://img.shields.io/badge/visibility-private-lightgrey)
 
 
@@ -38,8 +39,9 @@ third-party devices, and it does not target hardware crypto sticks. Unlock
 attempts will be driven via macOS `diskutil` as a child process (no private
 Apple frameworks).
 
-This **0.0.2** release wires the CLI through **LibCLImate** and declares
-runtime dependencies; search and unlock behaviour is not implemented yet.
+This **0.0.3** release parses and validates argv in **lib/** (required
+**volume** value and `--key-name`; fail-closed brute-force bounds). Search
+and unlock behaviour is not implemented yet.
 
 
 ## Installation
@@ -60,11 +62,15 @@ gem install --local usb_cracker-*.gem
 usb-cracker --help
 usb-cracker --version
 usb-cracker <volume> --key-name <name>
+usb-cracker <volume> --key-name <name> --charset <chars> --max-suffix-len <n>
+usb-cracker <volume> --key-name <name> --no-bruteforce
 ```
 
-Full CLI: required **volume** value (device id or UUID); options `--key-name`,
-optional bounded brute-force bounds (`--charset`, `--max-suffix-len`,
-`--no-bruteforce`). Unlock behaviour lands in a later release.
+Required: **volume** (device id or UUID) and `--key-name` / `-k` (informed
+search). Bounded brute-force is off unless **both** `--charset` / `-c` and
+`--max-suffix-len` / `-m` (integer > 0) are supplied; supplying only one is an
+error. `--no-bruteforce` / `-n` disables brute-force even when both bounds are
+present. Unlock behaviour lands in a later release.
 
 
 ## Project Information

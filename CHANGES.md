@@ -1,6 +1,14 @@
 # usb-cracker - Changes <!-- omit in toc -->
 
 
+## 0.0.3 - 15th September 2026
+
+* extracted **LibCLImate** argv parse/validate into **lib/usb_cracker/cli.rb**; **exe/usb-cracker** stays orchestration-only;
+* **--key-name** / **-k** is required; blank **volume** and blank **--key-name** abort;
+* bounded brute-force is fail-closed: enabled only when both **--charset** and **--max-suffix-len** (integer > 0) are supplied; **--no-bruteforce** disables it;
+* unit tests for CLI parse success and validation failures (**test/unit/tc_cli.rb**);
+
+
 ## 0.0.2 - 15th September 2026
 
 * refreshed Ruby exemplars from **misc-dev-scripts** (**.editorconfig**, **.gitattributes**, **.gitignore**, **.vimrc**, **.vscode/settings.json**, **run_all_unit_tests.sh**); added **test/unit/ts_all.rb**;

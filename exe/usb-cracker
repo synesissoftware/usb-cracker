@@ -4,7 +4,7 @@
 # ######################################################################## #
 # File:     exe/usb-cracker
 #
-# Purpose:  Entry point for the usb-cracker CLI (scaffold)
+# Purpose:  Entry point for the usb-cracker CLI
 #
 # Created:  9th September 2026
 # Updated:  15th September 2026
@@ -17,83 +17,26 @@
 
 $:.unshift File.join(File.dirname(__FILE__), '..', 'lib')
 
-require 'libclimate'
-
-require 'usb_cracker/version'
-
-
-# ##########################################################
-# constants
-
-PROGRAM_VER_MAJOR   = UsbCracker::VERSION_MAJOR
-PROGRAM_VER_MINOR   = UsbCracker::VERSION_MINOR
-PROGRAM_VER_PATCH   = UsbCracker::VERSION_REVISION
+require 'usb_cracker/cli'
 
 
 # ##########################################################
 # command-line handling
 
-options = {}
+trap 'INT' do
 
-climate = LibCLImate::Climate.new do |cl|
+  $stderr.puts ''
 
-  cl.info_lines = [
-
-    'usb-cracker',
-    'Copyright (c) 2026, Matthew Wilson and Synesis Information Systems',
-    :version,
-    "Recover forgotten suffixes on the operator's own encrypted USB volumes",
-    '',
-  ]
-
-  cl.usage_values     = '<volume>'
-  cl.constrain_values = 1..1
-  cl.value_names      = [
-    'volume',
-  ]
-
-  cl.version = [ PROGRAM_VER_MAJOR, PROGRAM_VER_MINOR, PROGRAM_VER_PATCH ]
-
-  # Flags/options reserved for later search/unlock work (declared so
-  # --help shows the intended surface; behaviour is not implemented yet).
-
-  cl.add_option('--key-name', alias: '-k', help: 'key-name string whose permutations form informed suffixes') do |o, _a|
-
-    options[:key_name] = o.value
-  end
-
-  cl.add_option('--charset', alias: '-c', help: 'character set for optional bounded brute-force suffixes') do |o, _a|
-
-    options[:charset] = o.value
-  end
-
-  cl.add_option('--max-suffix-len', alias: '-m', help: 'maximum length for optional bounded brute-force suffixes') do |o, _a|
-
-    options[:max_suffix_len] = Integer(o.value)
-  end
-
-  cl.add_flag('--no-bruteforce', alias: '-n', help: 'disable optional bounded brute-force fallback') do
-
-    options[:no_bruteforce] = true
-  end
-
-  trap 'INT' do
-
-    $stderr.puts ''
-
-    cl.abort 'processing cancelled ...', exit: 130
-  end
+  UsbCracker::Cli.abort 'processing cancelled ...', exit: 130
 end
 
-r = climate.run ARGV
-
-volume = r.values[0]
+UsbCracker::Cli.parse ARGV
 
 
 # ##########################################################
 # main()
 
-climate.abort 'search and unlock are not implemented in this scaffold release'
+UsbCracker::Cli.abort 'search and unlock are not implemented in this scaffold release'
 
 
 # ############################## end of file ############################# #
