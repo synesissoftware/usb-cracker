@@ -2,6 +2,7 @@
 
 | Date                | News Item             | Details |
 | ------------------- | --------------------- | ------- |
+| 15th September 2026 | **usb-cracker** 0.0.6 | confirmed double PREFIX prompt; mismatch fails closed |
 | 15th September 2026 | **usb-cracker** 0.0.5 | one-shot hidden PREFIX prompt; in-memory wipe; TTY-only |
 | 15th September 2026 | **usb-cracker** 0.0.4 | unique key-name permutations; optional bounded brute-force |
 | 15th September 2026 | **usb-cracker** 0.0.3 | required --key-name; fail-closed brute-force bounds |

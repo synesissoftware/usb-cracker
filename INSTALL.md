@@ -30,9 +30,9 @@ gem install --local usb_cracker-*.gem
 ## Using the CLI
 
 Required: **volume** and `--key-name`. After argv parse the program
-prompts once for PREFIX on a TTY (hidden input; never from env, files, or
-argv). Bounded brute-force is off unless both `--charset` and
-`--max-suffix-len` are supplied.
+prompts twice for PREFIX on a TTY (hidden input; confirm must match; never
+from env, files, or argv). Bounded brute-force is off unless both
+`--charset` and `--max-suffix-len` are supplied.
 
 ```
 usb-cracker --help

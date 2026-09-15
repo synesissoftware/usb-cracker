@@ -39,10 +39,10 @@ third-party devices, and it does not target hardware crypto sticks. Unlock
 attempts will be driven via macOS `diskutil` as a child process (no private
 Apple frameworks).
 
-This **0.0.5** release prompts once for the long secret PREFIX (hidden
-input, TTY only, held in a wipeable in-memory buffer). Argv parse and
-suffix-candidate enumeration live in **lib/**. Unlock behaviour is not
-implemented yet.
+This **0.0.6** release prompts twice for the long secret PREFIX (hidden
+input, TTY only; both entries must match) and holds it in a wipeable
+in-memory buffer. Argv parse and suffix-candidate enumeration live in
+**lib/**. Unlock behaviour is not implemented yet.
 
 
 ## Installation
@@ -68,8 +68,9 @@ usb-cracker <volume> --key-name <name> --no-bruteforce
 ```
 
 Required: **volume** (device id or UUID) and `--key-name` / `-k` (informed
-search). After argv parse the program prompts once for PREFIX on a TTY
-(no echo; not read from env, files, or argv). Search order is unique
+search). After argv parse the program prompts twice for PREFIX on a TTY
+(no echo; confirm must match; not read from env, files, or argv). Search
+order is unique
 permutations of `--key-name`, then — when brute-force is enabled — all
 non-empty strings of length 1..`--max-suffix-len` over `--charset` (charset
 order; suffixes already produced as permutations are skipped). Bounded

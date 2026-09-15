@@ -1,6 +1,12 @@
 # usb-cracker - Changes <!-- omit in toc -->
 
 
+## 0.0.6 - 15th September 2026
+
+* **Prefix.read!** prompts twice (`Prefix: ` / `Confirm prefix: `) and accepts only when both entries match; mismatch fails closed without echoing secrets;
+* confirmation copy is wiped before the PREFIX buffer is returned; blank first entry still rejects without a second prompt;
+
+
 ## 0.0.5 - 15th September 2026
 
 * added **lib/usb_cracker/secret_buffer.rb**: mutable PREFIX holder with best-effort **#wipe** / **#clear!**;

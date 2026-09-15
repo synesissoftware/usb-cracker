@@ -13,6 +13,19 @@ require 'test/unit'
 class Test_prefix < Test::Unit::TestCase
 
   TOKEN = 'unit-test-prefix-token'
+  TOKEN_OTHER = 'unit-test-prefix-other'
+
+  def getpass_queue(*values)
+
+    queue = values.map { |v| v.nil? ? nil : String.new(v) }
+    @prompts_seen = []
+
+    lambda { |prompt|
+
+      @prompts_seen << prompt
+      queue.shift
+    }
+  end
 
   def read_prefix(getpass:, **opts)
 
@@ -25,26 +38,21 @@ class Test_prefix < Test::Unit::TestCase
 
     assert_match pattern, e.message
     refute_includes e.message, TOKEN
+    refute_includes e.message, TOKEN_OTHER
     e
   end
 
 
-  def test_read_uses_injected_getpass_once
+  def test_read_prompts_twice_and_accepts_match
 
-    calls = 0
-    src = String.new(TOKEN)
-    getpass = lambda { |prompt|
-
-      calls += 1
-      assert_equal UsbCracker::Prefix::DEFAULT_PROMPT, prompt
-      src
-    }
-
+    getpass = getpass_queue(TOKEN, TOKEN)
     buf = read_prefix(getpass: getpass)
 
-    assert_equal 1, calls
+    assert_equal [
+      UsbCracker::Prefix::DEFAULT_PROMPT,
+      UsbCracker::Prefix::DEFAULT_CONFIRM_PROMPT,
+    ], @prompts_seen
     assert_equal TOKEN, buf.to_s
-    assert_true src.empty?
   ensure
 
     buf.wipe if buf
@@ -57,7 +65,7 @@ class Test_prefix < Test::Unit::TestCase
 
     assert_raise(SystemExit) do
 
-      UsbCracker::Prefix.read!(getpass: lambda { |_| String.new(TOKEN) }) do |prefix|
+      UsbCracker::Prefix.read!(getpass: getpass_queue(TOKEN, TOKEN)) do |prefix|
 
         captured = prefix
         UsbCracker::Cli.abort 'search and unlock are not implemented in this scaffold release', stderr: stderr
@@ -78,7 +86,7 @@ class Test_prefix < Test::Unit::TestCase
 
     assert_raise(UsbCracker::Cli::UsageError) do
 
-      UsbCracker::Prefix.read!(getpass: lambda { |_| String.new(TOKEN) }) do |prefix|
+      UsbCracker::Prefix.read!(getpass: getpass_queue(TOKEN, TOKEN)) do |prefix|
 
         captured = prefix
         raise UsbCracker::Cli::UsageError, 'prefix must not be empty'
@@ -89,21 +97,43 @@ class Test_prefix < Test::Unit::TestCase
     assert_true captured.empty?
   end
 
-  def test_blank_prefix_rejected
+  def test_mismatch_rejected_without_echoing_secrets
+
+    e = assert_usage(/prefixes do not match/) do
+
+      read_prefix(getpass: getpass_queue(TOKEN, TOKEN_OTHER))
+    end
+
+    assert_equal 'prefixes do not match', e.message
+    assert_equal 2, @prompts_seen.length
+  end
+
+  def test_blank_confirmation_rejected_as_mismatch
+
+    e = assert_usage(/prefixes do not match/) do
+
+      read_prefix(getpass: getpass_queue(TOKEN, ''))
+    end
+
+    assert_equal 'prefixes do not match', e.message
+  end
+
+  def test_blank_prefix_rejected_without_confirm_prompt
 
     e = assert_usage(/prefix must not be empty/) do
 
-      read_prefix(getpass: lambda { |_| String.new('') })
+      read_prefix(getpass: getpass_queue(''))
     end
 
     assert_equal 'prefix must not be empty', e.message
+    assert_equal [ UsbCracker::Prefix::DEFAULT_PROMPT ], @prompts_seen
   end
 
   def test_whitespace_prefix_rejected
 
     e = assert_usage(/prefix must not be empty/) do
 
-      read_prefix(getpass: lambda { |_| String.new(" \t\n") })
+      read_prefix(getpass: getpass_queue(" \t\n"))
     end
 
     assert_equal 'prefix must not be empty', e.message
@@ -113,7 +143,7 @@ class Test_prefix < Test::Unit::TestCase
 
     e = assert_usage(/prefix must not be empty/) do
 
-      read_prefix(getpass: lambda { |_| nil })
+      read_prefix(getpass: getpass_queue(nil))
     end
 
     assert_equal 'prefix must not be empty', e.message
@@ -136,7 +166,7 @@ class Test_prefix < Test::Unit::TestCase
 
     input = StringIO.new
     buf = UsbCracker::Prefix.read!(
-      getpass: lambda { |_| String.new(TOKEN) },
+      getpass: getpass_queue(TOKEN, TOKEN),
       input: input,
     )
 
@@ -146,19 +176,15 @@ class Test_prefix < Test::Unit::TestCase
     buf.wipe if buf
   end
 
-  def test_custom_prompt_passed_to_getpass
+  def test_custom_prompts_passed_to_getpass
 
-    seen = nil
     buf = read_prefix(
-      getpass: lambda { |prompt|
-
-        seen = prompt
-        String.new(TOKEN)
-      },
+      getpass: getpass_queue(TOKEN, TOKEN),
       prompt: 'Prefix:',
+      confirm_prompt: 'Again:',
     )
 
-    assert_equal 'Prefix:', seen
+    assert_equal [ 'Prefix:', 'Again:' ], @prompts_seen
   ensure
 
     buf.wipe if buf
