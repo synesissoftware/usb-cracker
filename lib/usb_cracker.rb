@@ -29,6 +29,8 @@ end # module UsbCracker
 
 require 'usb_cracker/candidates'
 require 'usb_cracker/cli'
+require 'usb_cracker/prefix'
+require 'usb_cracker/secret_buffer'
 require 'usb_cracker/version'
 
 

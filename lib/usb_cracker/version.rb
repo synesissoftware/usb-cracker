@@ -26,7 +26,7 @@
 module UsbCracker
 
   # Current version of the usb-cracker gem
-  VERSION           = '0.0.4'
+  VERSION           = '0.0.5'
 
   private
   # @!visibility private

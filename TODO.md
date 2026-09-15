@@ -3,7 +3,7 @@
 
 ## Functional improvements
 
-* [ ] Prompt once for the long secret PREFIX (hidden input); never persist it;
+* [x] ~~~Prompt once for the long secret PREFIX (hidden input); never persist it~~~ - ✅;
 * [x] ~~~CLI argv: required **volume** value; **--key-name**; fail-closed brute-force bounds~~~ - ✅;
 * [x] ~~~Informed search: unique permutations of the key-name suffix~~~ - ✅;
 * [x] ~~~Optional bounded brute-force fallback (charset + max length; fail closed)~~~ - ✅;

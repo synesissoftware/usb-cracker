@@ -18,6 +18,7 @@
 $:.unshift File.join(File.dirname(__FILE__), '..', 'lib')
 
 require 'usb_cracker/cli'
+require 'usb_cracker/prefix'
 
 
 # ##########################################################
@@ -30,13 +31,14 @@ trap 'INT' do
   UsbCracker::Cli.abort 'processing cancelled ...', exit: 130
 end
 
-UsbCracker::Cli.parse ARGV
+options = UsbCracker::Cli.parse ARGV
 
+UsbCracker::Prefix.read! do |_prefix|
 
-# ##########################################################
-# main()
-
-UsbCracker::Cli.abort 'search and unlock are not implemented in this scaffold release'
+  # Step 4–5 will search with +options+ here; PREFIX is wiped in ensure
+  # even on abort.
+  UsbCracker::Cli.abort 'search and unlock are not implemented in this scaffold release'
+end
 
 
 # ############################## end of file ############################# #

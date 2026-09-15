@@ -18,10 +18,17 @@ advisories or attach exploit proofs of concept against third-party systems.
 ## Secret handling
 
 **usb-cracker** is intended only for recovering forgotten suffixes on the
-operator's own encrypted volumes. The long passphrase PREFIX must never be
-written to disk, logs, history files, crash artefacts, or configuration.
-Future releases will prompt for PREFIX once in-process and print only a
-successful suffix on success.
+operator's own encrypted volumes.
+
+The long passphrase PREFIX is prompted **once** via hidden TTY input
+(**IO#getpass**; prompt `Prefix: `). It is held only in a mutable in-memory
+buffer (**SecretBuffer**) and is best-effort wiped on exit paths (including
+the current unlock-not-implemented abort). PREFIX is never read from the
+environment, files, or CLI flags, and must never be written to disk, logs,
+history files, crash artefacts, or configuration. Usage errors and
+**inspect** omit the secret.
+
+Later releases will print only a successful suffix on success.
 
 
 ## Supported versions

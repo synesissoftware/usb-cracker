@@ -1,6 +1,14 @@
 # usb-cracker - Changes <!-- omit in toc -->
 
 
+## 0.0.5 - 15th September 2026
+
+* added **lib/usb_cracker/secret_buffer.rb**: mutable PREFIX holder with best-effort **#wipe** / **#clear!**;
+* added **lib/usb_cracker/prefix.rb**: one-shot hidden PREFIX prompt via **IO#getpass**; TTY-only (fail closed); injectable **getpass** for tests;
+* blank PREFIX rejected with a non-secret message; **exe/usb-cracker** wipes PREFIX on the unlock-not-implemented abort path;
+* unit tests for secret-buffer wipe and PREFIX read (**test/unit/tc_secret_buffer.rb**, **test/unit/tc_prefix.rb**);
+
+
 ## 0.0.4 - 15th September 2026
 
 * added **lib/usb_cracker/candidates.rb**: unique **key_name** permutations (lexicographic), then optional bounded brute-force suffixes;
