@@ -36,13 +36,14 @@ older Core Storage / Journaled Encrypted).
 
 It is **not** published to RubyGems.org, **not** a general USB cracker for
 third-party devices, and it does not target hardware crypto sticks. Unlock
-attempts will be driven via macOS `diskutil` as a child process (no private
+attempts are driven via macOS `diskutil` as a child process (no private
 Apple frameworks).
 
-This **0.0.7** release prompts twice for the long secret PREFIX (hidden
+This **0.0.8** release prompts twice for the long secret PREFIX (hidden
 input, TTY only; both entries must match) and holds it in a wipeable
-in-memory buffer. Argv parse and suffix-candidate enumeration live in
-**lib/**. Unlock behaviour is not implemented yet.
+in-memory buffer. Argv parse, suffix-candidate enumeration, and a
+`diskutil` unlock adapter live in **lib/**. The candidate search loop is
+not implemented yet.
 
 
 ## Installation
@@ -77,7 +78,9 @@ order; suffixes already produced as permutations are skipped). Bounded
 brute-force is off unless **both** `--charset` / `-c` and
 `--max-suffix-len` / `-m` (integer > 0) are supplied; supplying only one
 is an error. `--no-bruteforce` / `-n` disables brute-force even when both
-bounds are present. Unlock behaviour lands in a later release.
+bounds are present. Unlock is macOS **diskutil**-driven (APFS first, Core
+Storage when APFS does not apply; passphrase on stdin, never argv). The
+candidate search loop lands in a later release.
 
 
 ## Project Information

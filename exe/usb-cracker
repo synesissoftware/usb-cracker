@@ -35,9 +35,9 @@ options = UsbCracker::Cli.parse ARGV
 
 UsbCracker::Prefix.read! do |_prefix|
 
-  # Step 4–5 will search with +options+ here; PREFIX is wiped in ensure
-  # even on abort.
-  UsbCracker::Cli.abort 'search and unlock are not implemented in this scaffold release'
+  # Step 5 will search with +options+ here (Unlock.attempt per candidate);
+  # PREFIX is wiped in ensure even on abort.
+  UsbCracker::Cli.abort 'suffix search is not implemented in this scaffold release'
 end
 
 

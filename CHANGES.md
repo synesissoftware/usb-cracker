@@ -1,6 +1,14 @@
 # usb-cracker - Changes <!-- omit in toc -->
 
 
+## 0.0.8 - 15th September 2026
+
+* added **lib/usb_cracker/diskutil.rb**: `diskutil` unlockVolume argv builder (APFS and Core Storage), **Open3** runner, and stdout/stderr classifier;
+* added **lib/usb_cracker/unlock.rb**: **Unlock.attempt** assembles PREFIX+suffix in memory, pipes the passphrase via **-stdinpassphrase** (never argv), wipes the ephemeral buffer, and returns a typed **Result**;
+* **engine: :auto** tries APFS first and falls back to Core Storage only when APFS is inapplicable (**:wrong_target**);
+* unit tests for argv and classification (**test/unit/tc_diskutil.rb**); component tests with a mocked runner (**test/component/tc_unlock.rb**);
+
+
 ## 0.0.7 - 15th September 2026
 
 * **Prefix.read!** usage failures (blank, mismatch, non-TTY) go through **Cli.abort** — single `usb-cracker:` stderr line, no Ruby backtrace; injectable **abort_exit: nil** for tests;
