@@ -59,10 +59,12 @@ gem install --local usb_cracker-*.gem
 ```
 usb-cracker --help
 usb-cracker --version
+usb-cracker <volume> --key-name <name>
 ```
 
-Full CLI flags (`--volume`, `--key-name`, optional bounded brute-force
-bounds) will land in a later release.
+Full CLI: required **volume** value (device id or UUID); options `--key-name`,
+optional bounded brute-force bounds (`--charset`, `--max-suffix-len`,
+`--no-bruteforce`). Unlock behaviour lands in a later release.
 
 
 ## Project Information

@@ -46,17 +46,16 @@ climate = LibCLImate::Climate.new do |cl|
     '',
   ]
 
-  cl.usage_values = nil
+  cl.usage_values     = '<volume>'
+  cl.constrain_values = 1..1
+  cl.value_names      = [
+    'volume',
+  ]
 
   cl.version = [ PROGRAM_VER_MAJOR, PROGRAM_VER_MINOR, PROGRAM_VER_PATCH ]
 
-  # Flags reserved for later search/unlock work (declared so --help shows
-  # the intended surface; behaviour is not implemented in this release).
-
-  cl.add_option('--volume', help: 'volume device id or UUID to unlock') do |o, _a|
-
-    options[:volume] = o.value
-  end
+  # Flags/options reserved for later search/unlock work (declared so
+  # --help shows the intended surface; behaviour is not implemented yet).
 
   cl.add_option('--key-name', alias: '-k', help: 'key-name string whose permutations form informed suffixes') do |o, _a|
 
@@ -86,7 +85,9 @@ climate = LibCLImate::Climate.new do |cl|
   end
 end
 
-climate.run ARGV
+r = climate.run ARGV
+
+volume = r.values[0]
 
 
 # ##########################################################

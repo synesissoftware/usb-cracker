@@ -32,6 +32,7 @@ gem install --local usb_cracker-*.gem
 ```
 usb-cracker --help
 usb-cracker --version
+usb-cracker <volume> --key-name <name>
 ```
 
 

@@ -4,7 +4,7 @@
 ## Functional improvements
 
 * [ ] Prompt once for the long secret PREFIX (hidden input); never persist it;
-* [ ] CLI argv for volume identity, key-name, and optional brute-force bounds;
+* [ ] CLI argv: required **volume** value; key-name and optional brute-force bounds;
 * [ ] Informed search: unique permutations of the key-name suffix;
 * [ ] Optional bounded brute-force fallback (charset + max length; fail closed);
 * [ ] Unlock via macOS `diskutil` child process (APFS, then Core Storage);

@@ -5,7 +5,7 @@
 
 * refreshed Ruby exemplars from **misc-dev-scripts** (**.editorconfig**, **.gitattributes**, **.gitignore**, **.vimrc**, **.vscode/settings.json**, **run_all_unit_tests.sh**); added **test/unit/ts_all.rb**;
 * runtime dependencies: **clasp-ruby**, **highline**, **libclimate-ruby**, **pantheios-ruby**, **recls-ruby**, **xqsr3**;
-* **exe/usb-cracker** converted to **LibCLImate** (help/version plus reserved search flags; unlock still unimplemented);
+* **exe/usb-cracker** converted to **LibCLImate** (required **volume** value; reserved search options; unlock still unimplemented);
 * `required_ruby_version` raised to `[ '>= 3.0', '< 5' ]` for **highline** 3.x; CI matrix dropped Ruby 2.x cells;
 
 
