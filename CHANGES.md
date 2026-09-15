@@ -1,6 +1,11 @@
 # usb-cracker - Changes <!-- omit in toc -->
 
 
+## 0.0.7 - 15th September 2026
+
+* **Prefix.read!** usage failures (blank, mismatch, non-TTY) go through **Cli.abort** — single `usb-cracker:` stderr line, no Ruby backtrace; injectable **abort_exit: nil** for tests;
+
+
 ## 0.0.6 - 15th September 2026
 
 * **Prefix.read!** prompts twice (`Prefix: ` / `Confirm prefix: `) and accepts only when both entries match; mismatch fails closed without echoing secrets;

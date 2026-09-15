@@ -29,7 +29,14 @@ class Test_prefix < Test::Unit::TestCase
 
   def read_prefix(getpass:, **opts)
 
-    UsbCracker::Prefix.read!(getpass: getpass, **opts)
+    @stderr = StringIO.new
+
+    UsbCracker::Prefix.read!(
+      abort_exit: nil,
+      getpass: getpass,
+      stderr: @stderr,
+      **opts,
+    )
   end
 
   def assert_usage(pattern)
@@ -37,8 +44,12 @@ class Test_prefix < Test::Unit::TestCase
     e = assert_raise(UsbCracker::Cli::UsageError) { yield }
 
     assert_match pattern, e.message
+    assert_match pattern, @stderr.string
+    assert_match(/^usb-cracker: /, @stderr.string)
     refute_includes e.message, TOKEN
     refute_includes e.message, TOKEN_OTHER
+    refute_includes @stderr.string, TOKEN
+    refute_includes @stderr.string, TOKEN_OTHER
     e
   end
 
@@ -86,7 +97,11 @@ class Test_prefix < Test::Unit::TestCase
 
     assert_raise(UsbCracker::Cli::UsageError) do
 
-      UsbCracker::Prefix.read!(getpass: getpass_queue(TOKEN, TOKEN)) do |prefix|
+      UsbCracker::Prefix.read!(
+        abort_exit: nil,
+        getpass: getpass_queue(TOKEN, TOKEN),
+        stderr: StringIO.new,
+      ) do |prefix|
 
         captured = prefix
         raise UsbCracker::Cli::UsageError, 'prefix must not be empty'
@@ -106,6 +121,22 @@ class Test_prefix < Test::Unit::TestCase
 
     assert_equal 'prefixes do not match', e.message
     assert_equal 2, @prompts_seen.length
+  end
+
+  def test_mismatch_default_abort_exits_without_ruby_backtrace
+
+    stderr = StringIO.new
+
+    assert_raise(SystemExit) do
+
+      UsbCracker::Prefix.read!(
+        getpass: getpass_queue(TOKEN, TOKEN_OTHER),
+        stderr: stderr,
+      )
+    end
+
+    assert_equal "usb-cracker: prefixes do not match\n", stderr.string
+    refute_includes stderr.string, TOKEN
   end
 
   def test_blank_confirmation_rejected_as_mismatch
@@ -155,7 +186,11 @@ class Test_prefix < Test::Unit::TestCase
 
     e = assert_usage(/prefix prompt requires a TTY/) do
 
-      UsbCracker::Prefix.read!(input: input)
+      UsbCracker::Prefix.read!(
+        abort_exit: nil,
+        input: input,
+        stderr: (@stderr = StringIO.new),
+      )
     end
 
     assert_match(/stdin is not a terminal/, e.message)
@@ -166,8 +201,10 @@ class Test_prefix < Test::Unit::TestCase
 
     input = StringIO.new
     buf = UsbCracker::Prefix.read!(
+      abort_exit: nil,
       getpass: getpass_queue(TOKEN, TOKEN),
       input: input,
+      stderr: StringIO.new,
     )
 
     assert_equal TOKEN, buf.to_s

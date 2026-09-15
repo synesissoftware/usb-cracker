@@ -39,7 +39,7 @@ third-party devices, and it does not target hardware crypto sticks. Unlock
 attempts will be driven via macOS `diskutil` as a child process (no private
 Apple frameworks).
 
-This **0.0.6** release prompts twice for the long secret PREFIX (hidden
+This **0.0.7** release prompts twice for the long secret PREFIX (hidden
 input, TTY only; both entries must match) and holds it in a wipeable
 in-memory buffer. Argv parse and suffix-candidate enumeration live in
 **lib/**. Unlock behaviour is not implemented yet.
