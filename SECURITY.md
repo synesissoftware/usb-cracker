@@ -92,7 +92,8 @@ status symbols — never PREFIX, suffix, or the assembled passphrase.
 
 | Version | Supported |
 | ------- | --------- |
-| 0.0.x   | ✅        |
+| 0.1.x   | ✅        |
+| 0.0.x   | ❌        |
 
 
 <!-- ########################### end of file ########################### -->

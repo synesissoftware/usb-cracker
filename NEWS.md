@@ -2,6 +2,7 @@
 
 | Date                | News Item              | Details |
 | ------------------- | ---------------------- | ------- |
+| 16th September 2026 | **usb-cracker** 0.1.0  | first 0.1.x: end-to-end suffix recovery CLI |
 | 16th September 2026 | **usb-cracker** 0.0.16 | confirm match UI; progress meter; min/mid options |
 | 16th September 2026 | **usb-cracker** 0.0.15 | CS "Unable to register passphrase" → auth_failed |
 | 16th September 2026 | **usb-cracker** 0.0.14 | Core Storage -69749 treated as auth failure |

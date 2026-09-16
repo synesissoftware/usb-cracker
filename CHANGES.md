@@ -1,6 +1,11 @@
 # usb-cracker - Changes <!-- omit in toc -->
 
 
+## 0.1.0 - 16th September 2026
+
+* first **0.1.x** release: end-to-end macOS suffix recovery (informed `--key-name` permutations and/or bounded `--charset` brute-force, PREFIX confirm with match indicator, Homebrew-style progress meter with **ETA**, contingent winning-suffix stdout report, and `diskutil` unlock);
+
+
 ## 0.0.16 - 16th September 2026
 
 * PREFIX confirmation shows a live non-secret match indicator (matched length vs first entry, and diverge when the typed confirmation differs);

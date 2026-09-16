@@ -39,12 +39,14 @@ third-party devices, and it does not target hardware crypto sticks. Unlock
 attempts are driven via macOS `diskutil` as a child process (no private
 Apple frameworks).
 
-This **0.0.9** release prompts twice for the long secret PREFIX (hidden
-input, TTY only; both entries must match), enumerates suffix candidates,
-and attempts unlock via macOS `diskutil`. On success it prints **only**
-the matching suffix to stdout (exit 0). PREFIX is wiped on every exit
-path. Opt-in `--trace-suffixes` logs each attempted suffix (never PREFIX)
-to the console for smoke-testing.
+This **0.1.0** release prompts twice for the long secret PREFIX (hidden
+input, TTY only; both entries must match), enumerates suffix candidates
+(informed `--key-name` permutations and/or bounded `--charset` brute-force),
+and attempts unlock via macOS `diskutil`. A Homebrew-style stderr progress
+meter (with **ETA**) runs by default. On success, stdout is a TTY winning
+report or a bare display suffix when piped. PREFIX is wiped on every exit
+path. Opt-in `--trace-suffixes` / `--trace-calls` are available for
+smoke-testing (never log PREFIX).
 
 
 ## Installation
