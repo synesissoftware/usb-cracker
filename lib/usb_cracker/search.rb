@@ -5,7 +5,7 @@
 # Purpose:  Suffix search loop: candidates → Unlock.attempt → outcome
 #
 # Created:  15th September 2026
-# Updated:  15th September 2026
+# Updated:  16th September 2026
 #
 # Home:     private Synesis Information Systems project
 #
@@ -22,33 +22,41 @@
 =begin
 =end
 
+require 'usb_cracker/call_trace'
 require 'usb_cracker/candidates'
 require 'usb_cracker/cli'
+require 'usb_cracker/diagnostics'
+require 'usb_cracker/progress'
 require 'usb_cracker/unlock'
 
 
 module UsbCracker
 
-  # End-to-end recovery loop. Enumerates suffixes via {Candidates.each}
-  # and calls {Unlock.attempt} per candidate. Never concatenates PREFIX
-  # and suffix itself (Unlock does that) and never logs PREFIX, the
-  # concatenation, or {SecretBuffer} contents.
+  # End-to-end recovery loop. Enumerates suffixes via {Candidates.each} and
+  # calls {Unlock.attempt} per candidate. Unlock assembles PREFIX + optional
+  # mid-section + suffix. Stop-failure abort messages include a
+  # PREFIX-masked passphrase ( `********` + mid + suffix) and never the live
+  # PREFIX or {SecretBuffer} contents. Logged and reported "suffix" forms
+  # include the mid-section when one was configured.
   #
   # Result policy:
-  # * +:success+ — stop; report the successful suffix (exit 0);
-  # * +:already_unlocked+ — stop; non-zero; "volume already unlocked";
-  #   do not invent a suffix;
+  # * +:success+ — stop; report the winning display suffix (exit 0);
+  # * +:already_unlocked+ — stop; non-zero; "volume already unlocked"; do
+  #   not invent a suffix;
   # * +:auth_failed+ — continue to the next candidate;
   # * +:busy+ — fail closed immediately (volume busy);
   # * +:wrong_target+ — fail closed immediately (volume / engine);
-  # * +:error+ — fail closed immediately (diskutil / macOS);
+  # * +:error+ — fail closed immediately (diskutil / macOS); abort message
+  #   includes attempt context and PREFIX-masked passphrase;
   # * exhaustion — non-zero; "no matching suffix".
   #
-  # Opt-in suffix tracing (`options.trace_suffixes?`): each attempt may
-  # log **suffix**, 1-based index, and {Unlock::Result#status} to a
-  # console sink. Tracing is off by default and does not call Pantheios
-  # at all when off. Inject +log:+ in tests. Never enable a file sink
-  # from this module (file sinks would persist partial secrets).
+  # When `options.trace_suffixes?` is set, each display suffix is logged to
+  # stderr **before** {Unlock.attempt} and again afterward with unlock
+  # status. Otherwise a Homebrew-style {Progress::Meter} is rewritten on
+  # stderr (TTY only) with counts, the current display suffix, and an ETA
+  # remaining estimate. Inject
+  # +log:+ in tests. Never enable a file sink from this module (file sinks
+  # would persist partial secrets).
   module Search
 
     # Structured loop outcome for {#report} / the executable.
@@ -94,6 +102,9 @@ module UsbCracker
       :wrong_target,
     ].freeze
 
+    # Mask substituted for the live PREFIX in abort diagnostics.
+    PREFIX_MASK = '********'
+
     class << self
 
       # Run the candidate loop.
@@ -102,66 +113,107 @@ module UsbCracker
       # @param prefix [SecretBuffer, String] live PREFIX; not wiped here
       # @param engine [Symbol] passed through to {Unlock.attempt}
       # @param log [#call, nil] injectable tracer
-      #   `log.call(index, suffix, result)`; used only when tracing is on
+      #   `log.call(index, suffix, result)` ; +result+ is +nil+ before
+      #   unlock and a {Unlock::Result} after when status tracing is on;
+      #   +suffix+ is the display form (mid + generated suffix)
+      # @param progress [Progress::Meter, nil] injectable meter; when
+      #   omitted and suffixes are not traced, a TTY meter is created
       # @param runner [#call, nil] passed through to {Unlock.attempt}
-      # @param unlock [#call, nil] injectable attempt callable with the
-      #   same keyword arguments as {Unlock.attempt}; tests supply this
-      #   so CI never spawns `diskutil`
+      # @param unlock [#call, nil] injectable attempt callable with the same
+      #   keyword arguments as {Unlock.attempt}; tests supply this so CI
+      #   never spawns `diskutil`
       # @return [Outcome]
       def run(
         options,
         prefix,
         engine: :auto,
         log: nil,
+        progress: :auto,
         runner: nil,
         unlock: nil
       )
 
+        CallTrace.enable! if options.respond_to?(:trace_calls?) && options.trace_calls?
+        CallTrace.enter(
+          'UsbCracker::Search.run',
+          "engine=#{engine} volume=#{options.volume}",
+        )
+
         attempt = unlock || method(:default_attempt_)
-        tracer = resolve_tracer_(options, log)
+        mid = mid_from_(options)
+        meter = resolve_progress_(options, progress, log)
         index = 0
+        outcome = nil
 
-        Candidates.each(options) do |suffix|
+        begin
 
-          index += 1
-          result = attempt.call(
-            engine: engine,
-            prefix: prefix,
-            runner: runner,
-            suffix: suffix,
-            volume: options.volume,
-          )
+          Candidates.each(options) do |suffix|
 
-          tracer.call(index, suffix, result) if tracer
+            index += 1
+            display = display_suffix_(options, suffix)
+            emit_before_(index, display, log, meter, options)
 
-          case result.status
-          when :success
+            result = attempt.call(
+              engine: engine,
+              mid: mid,
+              prefix: prefix,
+              runner: runner,
+              suffix: suffix,
+              volume: options.volume,
+            )
 
-            return success_outcome_(suffix)
-          when *CONTINUE_STATUSES
+            emit_after_(index, display, result, options, log)
 
-            next
-          when *STOP_FAILURE_STATUSES
+            case result.status
+            when :success
 
-            return failure_outcome_(result)
-          else
+              outcome = success_outcome_(display)
+              break
+            when *CONTINUE_STATUSES
 
-            return failure_outcome_for_kind_(:error)
+              next
+            when *STOP_FAILURE_STATUSES
+
+              outcome = failure_outcome_(
+                result,
+                index: index,
+                suffix: display,
+                volume: options.volume,
+              )
+              break
+            else
+
+              outcome = failure_outcome_for_kind_(:error)
+              break
+            end
           end
+
+          outcome ||= failure_outcome_for_kind_(:exhausted)
+        ensure
+
+          finish_progress_(meter, outcome)
         end
 
-        failure_outcome_for_kind_(:exhausted)
+        outcome
       end
 
-      # Emit the success suffix on stdout, or abort with a non-secret
-      # message. Stdout on success is exactly the suffix plus a newline
-      # (no PREFIX, no labels). Pass +abort_exit: nil+ from tests.
+      # On success: when stdout is a TTY, write
+      # `usb-cracker: winning suffix="…"` (suffix text green; quotes plain);
+      # when stdout is piped, write only the bare display suffix
+      # (scripting). Neither path uses {Diagnostics} / {CandidateLog}. On
+      # failure: abort with a non-secret message. Pass +abort_exit: nil+
+      # from tests.
       def report(
         outcome,
         abort_exit: :from_outcome,
         stderr: $stderr,
         stdout: $stdout
       )
+
+        CallTrace.enter(
+          'UsbCracker::Search.report',
+          "kind=#{outcome.respond_to?(:kind) ? outcome.kind : :invalid}",
+        )
 
         unless outcome.is_a?(Outcome)
 
@@ -170,7 +222,17 @@ module UsbCracker
 
         if outcome.success?
 
-          stdout.puts outcome.suffix
+          if stdout.respond_to?(:tty?) && stdout.tty?
+
+            green = Progress::CLR_GREEN
+            reset = Progress::CLR_RESET
+            stdout.puts(
+              "usb-cracker: winning suffix=\"#{green}#{outcome.suffix}#{reset}\"",
+            )
+          else
+
+            stdout.puts outcome.suffix
+          end
 
           return outcome
         end
@@ -186,13 +248,81 @@ module UsbCracker
         Unlock.attempt(**kwargs)
       end
 
-      def resolve_tracer_(options, log)
+      def resolve_progress_(options, progress, log)
 
-        return nil unless options.trace_suffixes?
+        return nil if progress.nil?
+        return progress unless progress == :auto
+        return nil if log
+        return nil if options.respond_to?(:trace_suffixes?) && options.trace_suffixes?
 
-        return log unless log.nil?
+        Progress.meter_for(
+          options,
+          total: Candidates.count(options),
+        )
+      end
 
-        method(:pantheios_suffix_trace_)
+      def mid_from_(options)
+
+        return options.mid if options.respond_to?(:mid)
+
+        ''
+      end
+
+      def display_suffix_(options, suffix)
+
+        if options.respond_to?(:display_suffix)
+
+          return options.display_suffix(suffix)
+        end
+
+        suffix
+      end
+
+      def emit_before_(index, suffix, log, meter, options)
+
+        if log
+
+          log.call(index, suffix, nil)
+          return
+        end
+
+        if options.respond_to?(:trace_suffixes?) && options.trace_suffixes?
+
+          meter.clear! if meter
+          CandidateLog.emit_before(index, suffix)
+          return
+        end
+
+        meter.tick(index, suffix) if meter
+      end
+
+      def emit_after_(index, suffix, result, options, log)
+
+        return unless options.trace_suffixes?
+
+        if log
+
+          log.call(index, suffix, result)
+        else
+
+          CandidateLog.emit_after(index, suffix, result)
+        end
+      end
+
+      def finish_progress_(meter, outcome)
+
+        return if meter.nil?
+
+        if outcome.nil?
+
+          meter.clear!
+        elsif outcome.success?
+
+          meter.finish(success: true)
+        else
+
+          meter.finish(success: false)
+        end
       end
 
       def success_outcome_(suffix)
@@ -205,10 +335,10 @@ module UsbCracker
         )
       end
 
-      def failure_outcome_(result)
+      def failure_outcome_(result, index:, suffix:, volume:)
 
         kind = result.status
-        message = if kind == :error && result.detail.is_a?(String) && !result.detail.empty?
+        base = if kind == :error && result.detail.is_a?(String) && !result.detail.empty?
 
           result.detail
         else
@@ -219,9 +349,39 @@ module UsbCracker
         Outcome.new(
           exit_status: 1,
           kind: kind,
-          message: message,
+          message: enrich_failure_message_(
+            base,
+            index: index,
+            result: result,
+            suffix: suffix,
+            volume: volume,
+          ),
           suffix: nil,
         )
+      end
+
+      # Append attempt context for stop failures. PREFIX is always shown as
+      # {PREFIX_MASK}; the display suffix (mid + generated) follows.
+      def enrich_failure_message_(base, index:, result:, suffix:, volume:)
+
+        parts = [
+          base,
+          "attempt=#{index}",
+          "volume=#{volume}",
+          "engine=#{result.engine}",
+        ]
+        unless result.exitstatus.nil?
+
+          parts << "exitstatus=#{result.exitstatus}"
+        end
+        parts << "passphrase=#{PREFIX_MASK}#{suffix}"
+        stderr = result.respond_to?(:stderr) ? result.stderr : nil
+        if stderr.is_a?(String) && !stderr.empty?
+
+          parts << "diskutil=#{stderr}"
+        end
+
+        parts.join('; ')
       end
 
       def failure_outcome_for_kind_(kind)
@@ -233,44 +393,29 @@ module UsbCracker
           suffix: nil,
         )
       end
-
-      def pantheios_suffix_trace_(index, suffix, result)
-
-        SuffixTrace.emit(index, suffix, result)
-      end
     end
 
-    # Console-only Pantheios wiring for `--trace-suffixes`. Loaded lazily
-    # the first time tracing runs without an injected +log+ callable.
-    # Logs suffix, attempt index, and status — never PREFIX.
-    module SuffixTrace
+    # Opt-in pre-attempt candidate logging (and post-status lines) for
+    # `--trace-suffixes` . Writes to +$stderr+ via
+    # {Diagnostics.emit_stderr!}. Never logs PREFIX.
+    module CandidateLog
 
       class << self
 
-        def emit(index, suffix, result)
+        def emit_before(index, suffix)
 
-          logger.log(:informational, "attempt #{index} suffix=#{suffix} status=#{result.status}")
+          Diagnostics.emit_stderr!("attempt #{index} suffix=#{suffix}")
         end
 
-        private
-        def logger
+        def emit_after(index, suffix, result)
 
-          return @logger if @logger
-
-          require 'pantheios'
-          require 'pantheios/services/simple_console_log_service'
-
-          Pantheios::Core.set_service(
-            Pantheios::Services::SimpleConsoleLogService.new,
+          Diagnostics.emit_stderr!(
+            "attempt #{index} suffix=#{suffix} status=#{result.status}",
           )
-          Pantheios::Core.process_name = 'usb-cracker'
-
-          @logger = Object.new
-          @logger.extend ::Pantheios::API
-          @logger
         end
       end
     end
+
   end # module Search
 end # module UsbCracker
 

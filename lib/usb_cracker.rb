@@ -5,7 +5,7 @@
 # Purpose:  Top-level require for usb-cracker
 #
 # Created:  9th September 2026
-# Updated:  15th September 2026
+# Updated:  16th September 2026
 #
 # Home:     private Synesis Information Systems project
 #
@@ -27,8 +27,10 @@ module UsbCracker
 
 end # module UsbCracker
 
+require 'usb_cracker/call_trace'
 require 'usb_cracker/candidates'
 require 'usb_cracker/cli'
+require 'usb_cracker/diagnostics'
 require 'usb_cracker/diskutil'
 require 'usb_cracker/prefix'
 require 'usb_cracker/search'

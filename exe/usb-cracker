@@ -7,7 +7,7 @@
 # Purpose:  Entry point for the usb-cracker CLI
 #
 # Created:  9th September 2026
-# Updated:  15th September 2026
+# Updated:  16th September 2026
 #
 # ######################################################################## #
 
@@ -28,11 +28,12 @@ require 'usb_cracker/search'
 trap 'INT' do
 
   $stderr.puts ''
-
-  UsbCracker::Cli.abort 'processing cancelled ...', exit: 130
+  $stderr.puts 'usb-cracker: processing cancelled ...'
+  exit 130
 end
 
 options = UsbCracker::Cli.parse ARGV
+UsbCracker::Cli.confirm_key_name! options
 
 UsbCracker::Prefix.read! do |prefix|
 

@@ -5,7 +5,7 @@
 # Purpose:  diskutil unlockVolume argv builder, runner, and classifier
 #
 # Created:  15th September 2026
-# Updated:  15th September 2026
+# Updated:  16th September 2026
 #
 # Home:     private Synesis Information Systems project
 #
@@ -24,20 +24,22 @@
 
 require 'open3'
 
+require 'usb_cracker/call_trace'
+
 
 module UsbCracker
 
   # Apple `diskutil` child-process adapter. Builds argv, runs the command,
   # and classifies stdout/stderr. The passphrase is never placed on argv:
-  # callers must pass it as stdin alongside `-stdinpassphrase`.
+  # callers must pass it as stdin alongside `-stdinpassphrase` .
   #
   # Engine selection for unlock verbs:
   # * +:apfs+ — `diskutil apfs unlockVolume <id> -stdinpassphrase`
-  # * +:core_storage+ — `diskutil coreStorage unlockVolume <id>
-  #   -stdinpassphrase`
+  # * +:core_storage+ —
+  #   `diskutil coreStorage unlockVolume <id> -stdinpassphrase`
   #
-  # {Unlock.attempt} with `engine: :auto` tries APFS first and falls back
-  # to Core Storage only when APFS classifies as +:wrong_target+.
+  # {Unlock.attempt} with `engine: :auto` tries APFS first and falls back to
+  # Core Storage only when APFS classifies as +:wrong_target+.
   module Diskutil
 
     COMMAND = 'diskutil'
@@ -57,11 +59,13 @@ module UsbCracker
     )
 
     # Default production runner. Uses {Open3.capture3} with an argv array
-    # (no shell). +stdin_data+ is the passphrase line; it is not copied
-    # onto argv.
+    # (no shell). +stdin_data+ is the passphrase line; it is not copied onto
+    # argv.
     class Open3Runner
 
       def call(argv, stdin_data:)
+
+        CallTrace.enter('UsbCracker::Diskutil::Open3Runner#call')
 
         unless argv.is_a?(Array)
 
@@ -88,8 +92,13 @@ module UsbCracker
     class << self
 
       # Argv for an unlockVolume attempt. +volume+ is a device id or UUID
-      # already supplied by the CLI. Never includes `-passphrase`.
+      # already supplied by the CLI. Never includes `-passphrase` .
       def unlock_argv(engine, volume)
+
+        CallTrace.enter(
+          'UsbCracker::Diskutil.unlock_argv',
+          "engine=#{engine} volume=#{volume}",
+        )
 
         unless volume.is_a?(String) && !volume.empty?
 
@@ -127,9 +136,14 @@ module UsbCracker
       end
 
       # Classify a diskutil invocation. Patterns are matched against
-      # stdout+stderr (case-insensitive). The passphrase must not be
-      # passed in. Returns a status symbol for {Unlock::Result}.
+      # stdout+stderr (case-insensitive). The passphrase must not be passed
+      # in. Returns a status symbol for {Unlock::Result}.
       def classify_status(stdout:, stderr:, exitstatus:)
+
+        CallTrace.enter(
+          'UsbCracker::Diskutil.classify_status',
+          "exitstatus=#{exitstatus}",
+        )
 
         text = "#{stdout}\n#{stderr}"
 
@@ -142,10 +156,12 @@ module UsbCracker
         :error
       end
 
-      # Coerce a runner return value to {Invocation}. Accepts
-      # {Invocation}, an object with +stdout+/+stderr+/+exitstatus+, or
-      # a three-element array +[stdout, stderr, exitstatus]+.
+      # Coerce a runner return value to {Invocation}. Accepts {Invocation},
+      # an object with +stdout+/+stderr+/+exitstatus+, or a three-element
+      # array +[stdout, stderr, exitstatus]+.
       def invocation_from(raw)
+
+        CallTrace.enter('UsbCracker::Diskutil.invocation_from')
 
         case raw
         when Invocation
@@ -188,10 +204,13 @@ module UsbCracker
       def auth_failed_output?(text)
 
         match_any?(text, [
+          /-69749\b/,
           /authentication (error|failed)/i,
           /incorrect passphrase/i,
           /passphrase incorrect/i,
           /passphrase is incorrect/i,
+          /unable to register passphrase/i,
+          /unable to unlock the core\s*storage volume/i,
           /user does not exist/i,
         ])
       end
@@ -207,9 +226,11 @@ module UsbCracker
       def wrong_target_output?(text)
 
         match_any?(text, [
-          /could not find (disk|volume)/i,
+          /could not find (disk|.+\s)?volume/i,
+          /could not find disk/i,
           /does not appear to be a (valid )?core\s*storage/i,
           /invalid disk identifier/i,
+          /is not a core\s*storage/i,
           /not a core\s*storage/i,
           /not an apfs (container|volume)/i,
           /unrecognized (disk|volume)/i,

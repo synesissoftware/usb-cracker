@@ -226,4 +226,59 @@ class Test_prefix < Test::Unit::TestCase
 
     buf.wipe if buf
   end
+
+
+  def test_match_state_matching_partial
+
+    state = UsbCracker::Prefix.match_state('abcdef', 'abc')
+
+    assert_equal 3, state.matched
+    assert_equal 6, state.total
+    assert_equal 3, state.typed
+    assert_false state.diverged
+    assert_true state.matching?
+  end
+
+  def test_match_state_full_match
+
+    state = UsbCracker::Prefix.match_state('ab', 'ab')
+
+    assert_equal 2, state.matched
+    assert_false state.diverged
+  end
+
+  def test_match_state_diverged
+
+    state = UsbCracker::Prefix.match_state('abcdef', 'abX')
+
+    assert_equal 2, state.matched
+    assert_true state.diverged
+  end
+
+  def test_match_state_too_long_diverges
+
+    state = UsbCracker::Prefix.match_state('ab', 'abc')
+
+    assert_true state.diverged
+  end
+
+  def test_format_match_indicator_never_embeds_secret
+
+    first = 'secret-token'
+    state = UsbCracker::Prefix.match_state(first, 'secr')
+    text = UsbCracker::Prefix.format_match_indicator(state)
+
+    assert_equal '[####--------] 4/12 matching', text
+    refute_includes text, 'secret'
+    refute_includes text, 'token'
+  end
+
+  def test_format_match_indicator_diverge
+
+    text = UsbCracker::Prefix.format_match_indicator(
+      UsbCracker::Prefix.match_state('abcd', 'abX'),
+    )
+
+    assert_equal '[##!-] 2/4 diverge', text
+  end
 end

@@ -139,6 +139,50 @@ class Test_diskutil < Test::Unit::TestCase
     assert_equal :wrong_target, status
   end
 
+  def test_classify_wrong_target_could_not_find_apfs_volume
+
+    status = UsbCracker::Diskutil.classify_status(
+      exitstatus: 1,
+      stderr: 'Could not find APFS Volume E2F0F39E-32FF-486A-ACFC-207860081ED4',
+      stdout: '',
+    )
+
+    assert_equal :wrong_target, status
+  end
+
+  def test_classify_wrong_target_not_core_storage_uuid
+
+    status = UsbCracker::Diskutil.classify_status(
+      exitstatus: 1,
+      stderr: 'disk11s2 is not a CoreStorage Logical Volume UUID',
+      stdout: '',
+    )
+
+    assert_equal :wrong_target, status
+  end
+
+  def test_classify_auth_failed_unable_to_register_passphrase
+
+    status = UsbCracker::Diskutil.classify_status(
+      exitstatus: 1,
+      stderr: 'Unable to register passphrase',
+      stdout: '',
+    )
+
+    assert_equal :auth_failed, status
+  end
+
+  def test_classify_auth_failed_core_storage_unable_to_unlock
+
+    status = UsbCracker::Diskutil.classify_status(
+      exitstatus: 1,
+      stderr: 'Error: -69749: Unable to unlock the Core Storage volume',
+      stdout: '',
+    )
+
+    assert_equal :auth_failed, status
+  end
+
   def test_classify_unexpected_nonzero
 
     status = UsbCracker::Diskutil.classify_status(

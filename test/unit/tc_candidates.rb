@@ -185,6 +185,30 @@ class Test_candidates < Test::Unit::TestCase
     assert_equal [ 'a', 'b' ], suffixes
   end
 
+  def test_nil_key_name_with_bruteforce_yields_brute_only
+
+    suffixes = UsbCracker::Candidates.enumerate(options(
+      charset: 'ab',
+      key_name: nil,
+      max_suffix_len: 1,
+    ))
+
+    assert_equal [ 'a', 'b' ], suffixes
+  end
+
+  def test_permutations_stream_first_before_exhausting
+
+    yielded = []
+
+    UsbCracker::Candidates.each(options(key_name: 'abc')) do |suffix|
+
+      yielded << suffix
+      break if yielded.size == 1
+    end
+
+    assert_equal [ 'abc' ], yielded
+  end
+
   def test_each_without_block_returns_enumerator
 
     enum = UsbCracker::Candidates.each(options(key_name: 'ab'))
@@ -215,5 +239,29 @@ class Test_candidates < Test::Unit::TestCase
     )
 
     assert_equal UsbCracker::Candidates.each(opts).to_a, UsbCracker::Candidates.enumerate(opts)
+  end
+
+  def test_count_matches_enumerate_size
+
+    opts = options(
+      charset: 'ab',
+      key_name: 'ab',
+      max_suffix_len: 2,
+    )
+
+    assert_equal UsbCracker::Candidates.enumerate(opts).size, UsbCracker::Candidates.count(opts)
+  end
+
+  def test_count_respects_min_suffix_len
+
+    opts = options(
+      charset: 'ab',
+      key_name: nil,
+      max_suffix_len: 2,
+      min_suffix_len: 2,
+    )
+
+    assert_equal [ 'aa', 'ab', 'ba', 'bb' ], UsbCracker::Candidates.enumerate(opts)
+    assert_equal 4, UsbCracker::Candidates.count(opts)
   end
 end

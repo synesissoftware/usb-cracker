@@ -6,7 +6,8 @@
 - [Reporting a vulnerability](#reporting-a-vulnerability)
 - [Secret handling](#secret-handling)
 - [Passphrase transport](#passphrase-transport)
-- [Suffix tracing](#suffix-tracing)
+- [Candidate logging](#candidate-logging)
+- [Call tracing](#call-tracing)
 - [Supported versions](#supported-versions)
 
 
@@ -23,51 +24,68 @@ advisories or attach exploit proofs of concept against third-party systems.
 operator's own encrypted volumes.
 
 The long passphrase PREFIX is prompted **twice** via hidden TTY input
-(**IO#getpass**; `Prefix: ` then `Confirm prefix: `) and accepted only when
-both entries match, so a mistype cannot drive a long unlock search. It is
-held only in a mutable in-memory buffer (**SecretBuffer**); the confirmation
+(`Prefix: ` then `Confirm prefix: `) and accepted only when both entries
+match, so a mistype cannot drive a long unlock search. The confirmation
+prompt redraws a **non-secret** match indicator (matched length and
+diverge flag) — never the PREFIX characters themselves. PREFIX is held
+only in a mutable in-memory buffer (**SecretBuffer**); the confirmation
 copy is wiped immediately, and the buffer is best-effort wiped on exit
 paths (including the search-loop abort paths). PREFIX is never read from
 the environment, files, or CLI flags, and must never be written to disk,
 logs, history files, crash artefacts, or configuration. Usage errors and
 **inspect** omit the secret.
 
-On success the program prints **only** the matching suffix to stdout
-(plus a newline) and exits 0. Failure paths emit a canned, non-secret
-stderr line and a non-zero status — they never echo PREFIX or a guessed
-suffix.
+On success the program prints `usb-cracker: winning suffix="…"` on stdout
+when stdout is a TTY (suffix text green; quotes plain). When stdout is
+piped, only the matching display suffix is written (plus a newline) for
+scripting. Stop-failure paths emit a stderr line that may include attempt
+context and a PREFIX-masked passphrase (`********` + mid + suffix) —
+never the live PREFIX. Exhaustion and usage failures remain canned
+non-secret messages.
 
 
 ## Passphrase transport
 
 Unlock attempts invoke Apple **diskutil** as a child process (`diskutil apfs
 unlockVolume`, then `diskutil coreStorage unlockVolume` when APFS does not
-apply). The assembled passphrase (PREFIX + suffix) is written to the child's
-**stdin** with `-stdinpassphrase`. The `-passphrase` flag is never used: it
-would place the secret on process argv (visible via `ps`). No temporary
-file is used (that would write the secret to disk).
+apply). The assembled passphrase (PREFIX + optional mid-section + suffix)
+is written to the child's **stdin** with `-stdinpassphrase`. The
+`-passphrase` flag is never used: it would place the secret on process
+argv (visible via `ps`). No temporary file is used (that would write the
+secret to disk).
 
 The ephemeral full-passphrase buffer is best-effort wiped after the child
 returns. **Unlock::Result** carries only a status symbol and a canned,
 non-secret detail — never PREFIX, suffix, or the concatenation.
 
 
-## Suffix tracing
+## Candidate logging
 
-`--trace-suffixes` / `-T` is **opt-in** and **off** by default. When
-enabled, each attempted **suffix** (a partial secret), a 1-based attempt
-index, and the unlock status are logged via **Pantheios** to the **console**
-(terminal / scrollback). PREFIX, PREFIX+suffix, and **SecretBuffer**
-contents are never logged.
+By default a Homebrew-style **progress meter** is rewritten on stderr
+(TTY only) while candidates are tried. The line includes attempt counts,
+the current **display suffix** (mid-section + generated suffix when
+configured), and an **ETA** remaining estimate (after the first completed
+attempt). Treat terminal scrollback as secret-bearing for those suffixes.
 
-This flag exists for operator smoke-testing. Treat the diagnostic sink as
-secret-bearing: terminal scrollback, tmux/screen history, and copied log
-fragments can leak suffix material. Do not redirect tracing to a file.
-There is no file logging by default; a file sink would persist partial
-secrets and would require a separate explicit flag if ever added.
+`--trace-suffixes` / `--T` is **opt-in** and **off** by default. When
+enabled, each candidate **suffix** (from informed `--key-name`
+permutations or bounded `--charset` brute-force, including any
+`--mid-section-literal`) is written to **stderr** as
+`attempt N suffix=…` **before** the unlock attempt and again afterward
+with unlock status. Do not redirect this output to a file. PREFIX,
+PREFIX+suffix, and **SecretBuffer** contents are never logged.
 
-Success output is unchanged when tracing is on: stdout is still **only**
-the matching suffix.
+Success stdout is either the labeled winning report (TTY) or the bare
+matching display suffix (piped). That path is not Pantheios / diagnostic
+logging.
+
+
+## Call tracing
+
+`--trace-calls` is **opt-in** and **off** by default. When enabled, public
+API entry points log at Pantheios **:info** to the same coloured console
+sink (`enter <name> …`). Detail strings may include volume, engine, or
+status symbols — never PREFIX, suffix, or the assembled passphrase.
 
 
 ## Supported versions

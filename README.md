@@ -65,45 +65,75 @@ gem install --local usb_cracker-*.gem
 usb-cracker --help
 usb-cracker --version
 usb-cracker <volume> --key-name <name>
+usb-cracker <volume> --charset <chars> --max-suffix-len <n>
+usb-cracker <volume> --charset <chars> --min-suffix-len <n> --max-suffix-len <n>
 usb-cracker <volume> --key-name <name> --charset <chars> --max-suffix-len <n>
+usb-cracker <volume> --key-name <name> --mid-section-literal <text>
+usb-cracker <volume> --key-name <name> --mid-section-literal=-x-
 usb-cracker <volume> --key-name <name> --no-bruteforce
 usb-cracker <volume> --key-name <name> --trace-suffixes
+usb-cracker <volume> --key-name <name> --trace-calls
 ```
 
-Required: **volume** (device id or UUID) and `--key-name` / `-k` (informed
-search). After argv parse the program prompts twice for PREFIX on a TTY
-(no echo; confirm must match; not read from env, files, or argv). Search
-order is unique
-permutations of `--key-name`, then — when brute-force is enabled — all
-non-empty strings of length 1..`--max-suffix-len` over `--charset` (charset
-order; suffixes already produced as permutations are skipped). Bounded
-brute-force is off unless **both** `--charset` / `-c` and
-`--max-suffix-len` / `-m` (integer > 0) are supplied; supplying only one
-is an error. `--no-bruteforce` / `-n` disables brute-force even when both
-bounds are present. Unlock is macOS **diskutil**-driven (APFS first, Core
-Storage when APFS does not apply; passphrase on stdin, never argv).
+Required: **volume** (device id or UUID). Provide at least one search
+strategy: optional `--key-name` / `-k` (informed permutations of a **short**
+mnemonic) and/or bounded brute-force via **both** `--charset` / `-c` and
+`--max-suffix-len` / `-x` (integer > 0). Optional `--min-suffix-len` / `-n`
+defaults to **1** and requires the charset/max pair. Optional
+`--mid-section-literal` is inserted between PREFIX and each candidate
+suffix (and is included in logged/reported suffix form). When the literal
+begins with `-`, use the equals form
+(`--mid-section-literal=-x-`); a separate `-…` argv token is treated as
+flags by the CLI parser. Supplying only one of charset/max is an error.
+`--no-bruteforce` / `-B` disables brute-force even when both bounds are
+present. When `--key-name` is longer than **6** characters the program
+warns about n! cost and requires confirmation (`y` / `yes`).
 
-On success the program writes **only** the matching suffix to stdout
-(plus a newline) and exits 0 — no PREFIX, and no labels that include the
-secret — so the output is safe to pipe. Other outcomes abort with a
-non-secret stderr line and a non-zero status:
+After argv parse (and any key-name confirmation) the program prompts twice
+for PREFIX on a TTY (no echo; confirm must match; not read from env, files,
+or argv). The confirmation prompt overlays the first prompt line; on
+success that line is cleared before search output begins. While typing the
+confirmation, a non-secret indicator shows how much of the first entry
+matches and whether the typed text has diverged.
+Search order is unique permutations of `--key-name` (streamed), then —
+when brute-force is enabled — all strings of length
+`--min-suffix-len`..`--max-suffix-len` over `--charset` (charset order;
+suffixes already produced as permutations are skipped). Unlock is macOS
+**diskutil**-driven (APFS first, Core Storage when APFS does not apply;
+passphrase on stdin, never argv).
+
+By default a Homebrew-style progress meter is rewritten on stderr (TTY)
+while candidates are tried (counts, the current display suffix, and an
+**ETA** remaining estimate after the first completed attempt). With
+`--trace-suffixes` / `--T` each candidate **suffix** is written to stderr as
+`attempt N suffix=…` **before** unlock and again afterward with status.
+Treat stderr scrollback as secret-bearing for suffixes. See
+[SECURITY.md](./SECURITY.md).
+
+On success, when stdout is a TTY the program prints
+`usb-cracker: winning suffix="…"` on stdout (suffix text in green; quotes
+plain). When stdout is piped, only the bare display suffix is written (for
+scripting).
 
 | Unlock result      | Action                                      |
 | ------------------ | ------------------------------------------- |
-| `:success`         | print suffix to stdout; exit 0              |
+| `:success`         | TTY: stdout winning report; pipe: bare suffix; exit 0 |
 | `:auth_failed`     | try the next candidate                      |
 | `:already_unlocked`| abort; volume already unlocked (no suffix)  |
 | `:busy`            | abort immediately                           |
 | `:wrong_target`    | abort immediately                           |
-| `:error`           | abort immediately                           |
+| `:error`           | abort immediately with attempt context      |
 | (exhausted)        | abort; no matching suffix                   |
 
-`--trace-suffixes` / `-T` is **off** by default. When enabled, each
-attempted suffix (a **partial secret**), attempt index, and unlock status
-are logged to the **Pantheios** console sink (terminal / scrollback).
-PREFIX and the full passphrase are never logged. There is no file logging
-by default — a file sink would persist partial secrets. See
-[SECURITY.md](./SECURITY.md).
+Stop-failure aborts (busy / wrong-target / error / already-unlocked)
+include attempt index, volume, engine, exit status when known, and the
+attempted passphrase with PREFIX replaced by `********` (suffix remains
+visible). Treat that abort line as secret-bearing for the suffix.
+
+`--trace-calls` is **off** by default. When enabled, each public
+function-call entry is logged at Pantheios **:info** to the coloured
+console sink (callable name plus non-secret context such as volume /
+engine / status). PREFIX and suffixes are never included in call traces.
 
 
 ## Project Information

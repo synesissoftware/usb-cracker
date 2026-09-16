@@ -1,6 +1,51 @@
 # usb-cracker - Changes <!-- omit in toc -->
 
 
+## 0.0.16 - 16th September 2026
+
+* PREFIX confirmation shows a live non-secret match indicator (matched length vs first entry, and diverge when the typed confirmation differs);
+* default search UI is a Homebrew-style stderr progress meter (counts + current display suffix + **ETA** h/m/s remaining after the first completed attempt); full per-attempt suffix lines only with **--trace-suffixes**;
+* **--min-suffix-len** (default 1) and **--mid-section-literal** (PREFIX + mid + suffix; mid included in logged/reported suffix form);
+* contingent plain stdout report of the winning suffix on success (`usb-cracker: winning suffix="…"` on a TTY with green suffix text; bare suffix when stdout is piped);
+* TTY PREFIX confirm overlays the first prompt line and clears it before search output;
+
+
+## 0.0.15 - 16th September 2026
+
+* classify Core Storage `Unable to register passphrase` as **:auth_failed** (continue) rather than a hard **:error**;
+
+
+## 0.0.14 - 16th September 2026
+
+* classify Core Storage `-69749` / `Unable to unlock the Core Storage volume` as **:auth_failed** (continue to next candidate) rather than a hard **:error**;
+
+
+## 0.0.13 - 16th September 2026
+
+* classify APFS `Could not find APFS Volume …` as **:wrong_target** so `engine: :auto` falls back to Core Storage (LV UUID unlock path);
+
+
+## 0.0.12 - 16th September 2026
+
+* stop-failure aborts (including **diskutil failed**) include attempt index, volume, engine, exit status, and PREFIX-masked passphrase (`********` + suffix); optional truncated `diskutil` stderr snippet on unlock errors;
+
+
+## 0.0.11 - 16th September 2026
+
+* **--key-name** is optional; require at least one of informed `--key-name` or bounded `--charset` + `--max-suffix-len`;
+* warn and require confirmation when `--key-name` is longer than **6** characters (n! cost);
+* always log each candidate **suffix** to stderr **before** unlock (informed and brute-force); `--trace-suffixes` still adds post-attempt status;
+* stream unique key-name permutations (no full-array materialisation); Ctrl-C abort avoids Pantheios in the trap;
+
+
+## 0.0.10 - 16th September 2026
+
+* added **--trace-calls**: opt-in Pantheios **:info** function-entry tracing via **CallTrace** / **Diagnostics** (**ColouredConsoleLogService**);
+* public API entry points log `enter <name> …` (non-secret detail only); off by default; no file sink;
+* **--trace-suffixes** now logs the informed permutation list up front, each suffix **before** unlock (visible while `diskutil` blocks), and again with status after; each line is written to **$stderr** (and Pantheios); coloured console sink;
+* unit tests for the flag and enter logging (**test/unit/tc_call_trace.rb**, **tc_cli.rb**);
+
+
 ## 0.0.9 - 15th September 2026
 
 * added **lib/usb_cracker/search.rb**: candidate loop with **Unlock.attempt** per suffix; fail-closed result policy;

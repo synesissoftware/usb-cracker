@@ -5,7 +5,7 @@
 # Purpose:  Version for usb-cracker
 #
 # Created:  9th September 2026
-# Updated:  15th September 2026
+# Updated:  16th September 2026
 #
 # Home:     private Synesis Information Systems project
 #
@@ -26,7 +26,7 @@
 module UsbCracker
 
   # Current version of the usb-cracker gem
-  VERSION           = '0.0.9'
+  VERSION           = '0.0.16'
 
   private
   # @!visibility private

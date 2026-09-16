@@ -5,7 +5,7 @@
 # Purpose:  One unlock attempt: PREFIX + suffix via diskutil stdin
 #
 # Created:  15th September 2026
-# Updated:  15th September 2026
+# Updated:  16th September 2026
 #
 # Home:     private Synesis Information Systems project
 #
@@ -22,32 +22,34 @@
 =begin
 =end
 
+require 'usb_cracker/call_trace'
 require 'usb_cracker/diskutil'
 require 'usb_cracker/secret_buffer'
 
 
 module UsbCracker
 
-  # One passphrase attempt against a volume. Assembles PREFIX + suffix in
-  # memory, pipes the result to `diskutil` on stdin (`-stdinpassphrase`),
-  # wipes the ephemeral full-passphrase buffer, and returns a typed
-  # {Result}. Never logs PREFIX, suffix, or the concatenation.
+  # One passphrase attempt against a volume. Assembles PREFIX + optional
+  # mid-section + suffix in memory, pipes the result to `diskutil` on stdin
+  # ( `-stdinpassphrase` ), wipes the ephemeral full-passphrase buffer, and
+  # returns a typed {Result}. Never logs PREFIX, suffix, or the
+  # concatenation.
   #
   # Passphrase transport: Apple `diskutil` reads the passphrase from stdin
-  # when `-stdinpassphrase` is given. The `-passphrase` flag is not used
-  # (it would place the secret on process argv, visible via `ps`). No
-  # temporary file is used. See SECURITY.md.
+  # when `-stdinpassphrase` is given. The `-passphrase` flag is not used (it
+  # would place the secret on process argv, visible via `ps` ). No temporary
+  # file is used. See SECURITY.md.
   #
-  # Engine selection (`engine:`):
+  # Engine selection ( `engine:` ):
   # * +:apfs+ — APFS unlockVolume only;
   # * +:core_storage+ — Core Storage unlockVolume only;
   # * +:auto+ (default) — try APFS first; fall back to Core Storage only
-  #   when APFS classifies as +:wrong_target+ (the APFS verb does not
-  #   apply to this volume). Authentication failure, busy, already
-  #   unlocked, success, and unexpected errors do not fall back.
+  #   when APFS classifies as +:wrong_target+ (the APFS verb does not apply
+  #   to this volume). Authentication failure, busy, already unlocked,
+  #   success, and unexpected errors do not fall back.
   #
   # The default runner is {Diskutil::Open3Runner} on Darwin. On other
-  # platforms, a missing runner returns +:error+ (`diskutil` unlock is
+  # platforms, a missing runner returns +:error+ ( `diskutil` unlock is
   # macOS-only) without spawning a child. Tests inject +runner:+.
   module Unlock
 
@@ -66,14 +68,17 @@ module UsbCracker
       :wrong_target,
     ].freeze
 
-    # Typed outcome of one attempt. +detail+ is a canned, non-secret
-    # phrase. +engine+ is the verb that produced this result (+:apfs+ or
-    # +:core_storage+).
+    # Typed outcome of one attempt. +detail+ is a canned, non-secret phrase
+    # (or a short non-secret diagnostic). +engine+ is the verb that produced
+    # this result (+:apfs+ or +:core_storage+). +stderr+ may carry a
+    # truncated `diskutil` stderr snippet for +:error+ diagnostics (never
+    # the passphrase).
     Result = Struct.new(
       :detail,
       :engine,
       :exitstatus,
       :status,
+      :stderr,
       keyword_init: true,
     ) do
 
@@ -94,10 +99,11 @@ module UsbCracker
 
     class << self
 
-      # Attempt to unlock +volume+ with PREFIX + +suffix+.
+      # Attempt to unlock +volume+ with PREFIX + optional +mid+ + +suffix+.
       #
       # @param volume [String] device id or UUID ({Cli::Options#volume})
       # @param prefix [SecretBuffer, String] live PREFIX; not wiped here
+      # @param mid [String] literal between PREFIX and suffix (may be empty)
       # @param suffix [String] candidate suffix (may be empty)
       # @param engine [Symbol] +:auto+, +:apfs+, or +:core_storage+
       # @param runner [#call] injectable Open3 wrapper; called as
@@ -106,18 +112,26 @@ module UsbCracker
       # @return [Result]
       def attempt(
         engine: :auto,
+        mid: '',
         prefix:,
         runner: nil,
         suffix:,
         volume:
       )
 
+        CallTrace.enter(
+          'UsbCracker::Unlock.attempt',
+          "engine=#{engine} volume=#{volume}",
+        )
+
         validate_engine_(engine)
         argv_volume = validate_volume_(volume)
         suffix_s = validate_suffix_(suffix)
+        mid_s = validate_mid_(mid)
         prefix_s = prefix_string_(prefix)
 
         passphrase = String.new(prefix_s)
+        passphrase << mid_s
         passphrase << suffix_s
         passphrase << "\n" unless passphrase.end_with?("\n")
 
@@ -166,7 +180,13 @@ module UsbCracker
             stderr: invocation.stderr,
             stdout: invocation.stdout,
           )
-          last = result_(status, item, invocation.exitstatus)
+          last = result_(
+            status,
+            item,
+            invocation.exitstatus,
+            nil,
+            invocation.stderr,
+          )
 
           fallback = engine == :auto &&
             status == :wrong_target &&
@@ -178,14 +198,25 @@ module UsbCracker
         last
       end
 
-      def result_(status, engine, exitstatus, detail = nil)
+      def result_(status, engine, exitstatus, detail = nil, stderr = nil)
 
         Result.new(
           detail: detail || DETAIL.fetch(status, DETAIL[:error]),
           engine: engine,
           exitstatus: exitstatus,
           status: status,
+          stderr: sanitize_stderr_(stderr),
         )
+      end
+
+      def sanitize_stderr_(stderr)
+
+        return nil if stderr.nil?
+
+        text = stderr.to_s.strip.gsub(/\s+/, ' ')
+        return nil if text.empty?
+
+        text.length > 200 ? "#{text[0, 200]}…" : text
       end
 
       def validate_engine_(engine)
@@ -210,6 +241,18 @@ module UsbCracker
         end
 
         suffix
+      end
+
+      def validate_mid_(mid)
+
+        return '' if mid.nil?
+
+        unless mid.is_a?(String)
+
+          raise ArgumentError, 'mid must be a String'
+        end
+
+        mid
       end
 
       def prefix_string_(prefix)

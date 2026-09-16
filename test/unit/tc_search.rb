@@ -25,6 +25,7 @@ class Test_search < Test::Unit::TestCase
       key_name: 'ab',
       max_suffix_len: nil,
       no_bruteforce: false,
+      trace_calls: false,
       trace_suffixes: false,
       volume: VOLUME,
       **kwargs,
@@ -78,6 +79,8 @@ class Test_search < Test::Unit::TestCase
 
   def run_search(opts, prefix, **kwargs)
 
+    kwargs[:progress] = nil unless kwargs.key?(:progress)
+
     UsbCracker::Search.run(opts, prefix, **kwargs)
   end
 
@@ -98,6 +101,18 @@ class Test_search < Test::Unit::TestCase
     assert_equal 1, outcome.exit_status
     assert_nil outcome.suffix
     assert_match pattern, outcome.message
+  end
+
+  def assert_failure_context(outcome, index:, suffix:)
+
+    assert_match(/attempt=#{index}/, outcome.message)
+    assert_match(/volume=#{VOLUME}/, outcome.message)
+    assert_match(/engine=/, outcome.message)
+    assert_match(
+      /passphrase=#{Regexp.escape(UsbCracker::Search::PREFIX_MASK)}#{Regexp.escape(suffix)}/,
+      outcome.message,
+    )
+    refute_includes outcome.message, PREFIX
     assert_hides_prefix outcome.message, outcome.inspect
   end
 
@@ -162,6 +177,7 @@ class Test_search < Test::Unit::TestCase
     outcome = run_search(options, prefix, unlock: unlock)
 
     assert_failure outcome, :busy, /volume busy/
+    assert_failure_context outcome, index: 1, suffix: 'ab'
     assert_equal 1, calls.size
   ensure
 
@@ -176,7 +192,31 @@ class Test_search < Test::Unit::TestCase
     outcome = run_search(options, prefix, unlock: unlock)
 
     assert_failure outcome, :wrong_target, /not an applicable volume/
+    assert_failure_context outcome, index: 1, suffix: 'ab'
     assert_equal 1, calls.size
+  ensure
+
+    prefix.wipe if prefix
+  end
+
+  def test_error_message_masks_prefix_and_keeps_suffix
+
+    prefix = prefix_buffer
+    unlock = lambda { |**_kwargs|
+
+      unlock_result(
+        :error,
+        detail: 'diskutil failed',
+        exitstatus: 1,
+      )
+    }
+
+    outcome = run_search(options, prefix, unlock: unlock)
+
+    assert_failure outcome, :error, /\Adiskutil failed;/
+    assert_failure_context outcome, index: 1, suffix: 'ab'
+    assert_match(/passphrase=\*{8}ab/, outcome.message)
+    assert_match(/exitstatus=1/, outcome.message)
   ensure
 
     prefix.wipe if prefix
@@ -195,6 +235,7 @@ class Test_search < Test::Unit::TestCase
     outcome = run_search(options, prefix, unlock: unlock)
 
     assert_failure outcome, :error, /diskutil unlock is macOS-only/
+    assert_failure_context outcome, index: 1, suffix: 'ab'
     assert_equal 1, idx
   ensure
 
@@ -209,7 +250,7 @@ class Test_search < Test::Unit::TestCase
     outcome = run_search(options, prefix, unlock: unlock)
 
     assert_failure outcome, :already_unlocked, /volume already unlocked/
-    refute_match(/suffix/, outcome.message)
+    assert_failure_context outcome, index: 1, suffix: 'ab'
     assert_equal 1, calls.size
   ensure
 
@@ -224,6 +265,7 @@ class Test_search < Test::Unit::TestCase
     outcome = run_search(options, prefix, unlock: unlock)
 
     assert_failure outcome, :busy, /volume busy/
+    assert_failure_context outcome, index: 2, suffix: 'ba'
     assert_equal 2, calls.size
   ensure
 
@@ -279,7 +321,7 @@ class Test_search < Test::Unit::TestCase
     prefix.wipe if prefix
   end
 
-  def test_report_success_stdout_is_exactly_suffix
+  def test_report_success_piped_stdout_is_exactly_suffix
 
     stdout = StringIO.new
     stderr = StringIO.new
@@ -301,6 +343,34 @@ class Test_search < Test::Unit::TestCase
     assert_equal "ba\n", stdout.string
     assert_equal '', stderr.string
     refute_includes stdout.string, PREFIX
+  end
+
+  def test_report_success_tty_stdout_uses_winning_report
+
+    stdout = StringIO.new
+    stderr = StringIO.new
+    stdout.define_singleton_method(:tty?) { true }
+    outcome = UsbCracker::Search::Outcome.new(
+      exit_status: 0,
+      kind: :success,
+      message: nil,
+      suffix: 'ba',
+    )
+
+    UsbCracker::Search.report(
+      outcome,
+      abort_exit: nil,
+      stderr: stderr,
+      stdout: stdout,
+    )
+
+    green = UsbCracker::Progress::CLR_GREEN
+    reset = UsbCracker::Progress::CLR_RESET
+    assert_equal(
+      "usb-cracker: winning suffix=\"#{green}ba#{reset}\"\n",
+      stdout.string,
+    )
+    assert_equal '', stderr.string
   end
 
   def test_report_failure_aborts_without_secrets
@@ -326,7 +396,7 @@ class Test_search < Test::Unit::TestCase
     refute_includes stderr.string, PREFIX
   end
 
-  def test_tracing_off_does_not_call_log
+  def test_always_logs_candidate_before_attempt
 
     prefix = prefix_buffer
     unlock, _calls = scripted_unlock([ :auth_failed, :success ])
@@ -334,7 +404,71 @@ class Test_search < Test::Unit::TestCase
 
     run_search(options, prefix, log: log, unlock: unlock)
 
-    assert_empty entries
+    assert_equal 2, entries.size
+    assert_equal [ 1, 2 ], entries.map { |e| e[:index] }
+    assert_equal [ 'ab', 'ba' ], entries.map { |e| e[:suffix] }
+    assert_nil entries[0][:result]
+    assert_nil entries[1][:result]
+  ensure
+
+    prefix.wipe if prefix
+  end
+
+  def test_stderr_logs_each_candidate_before_unlock_when_tracing
+
+    prefix = prefix_buffer
+    unlock, _calls = scripted_unlock([ :auth_failed, :success ])
+    prev_stderr = $stderr
+    $stderr = StringIO.new
+
+    begin
+
+      outcome = run_search(
+        options(trace_suffixes: true),
+        prefix,
+        unlock: unlock,
+      )
+      sink = $stderr.string
+    ensure
+
+      $stderr = prev_stderr
+    end
+
+    assert_predicate outcome, :success?
+    assert_match(/^attempt 1 suffix=ab\n/, sink)
+    assert_match(/attempt 2 suffix=ba/, sink)
+    assert_includes sink, 'status='
+    refute_includes sink, PREFIX
+  ensure
+
+    prefix.wipe if prefix
+  end
+
+  def test_progress_ticks_when_not_tracing_suffixes
+
+    prefix = prefix_buffer
+    unlock, _calls = scripted_unlock([ :auth_failed, :success ])
+    ticks = []
+    meter = Object.new
+    meter.define_singleton_method(:tick) { |index, suffix = nil|
+
+      ticks << [ index, suffix ]
+      meter
+    }
+    meter.define_singleton_method(:clear!) { meter }
+    meter.define_singleton_method(:finish) { |success:| @finished = success; meter }
+    meter.define_singleton_method(:finished) { @finished }
+
+    outcome = run_search(
+      options,
+      prefix,
+      progress: meter,
+      unlock: unlock,
+    )
+
+    assert_predicate outcome, :success?
+    assert_equal [ [ 1, 'ab' ], [ 2, 'ba' ] ], ticks
+    assert_equal true, meter.finished
   ensure
 
     prefix.wipe if prefix
@@ -353,18 +487,22 @@ class Test_search < Test::Unit::TestCase
       unlock: unlock,
     )
 
-    assert_equal 2, entries.size
-    assert_equal [ 1, 2 ], entries.map { |e| e[:index] }
-    assert_equal [ 'ab', 'ba' ], entries.map { |e| e[:suffix] }
-    assert_equal [ :auth_failed, :success ], entries.map { |e| e[:result].status }
+    # Before + after unlock for each of two candidates.
+    assert_equal 4, entries.size
+    assert_equal [ 1, 1, 2, 2 ], entries.map { |e| e[:index] }
+    assert_equal [ 'ab', 'ab', 'ba', 'ba' ], entries.map { |e| e[:suffix] }
+    assert_nil entries[0][:result]
+    assert_equal :auth_failed, entries[1][:result].status
+    assert_nil entries[2][:result]
+    assert_equal :success, entries[3][:result].status
 
     entries.each do |entry|
 
       assert_hides_prefix(
         entry[:suffix],
         entry[:index].to_s,
-        entry[:result].detail,
-        entry[:result].inspect,
+        entry[:result] && entry[:result].detail,
+        entry[:result] && entry[:result].inspect,
         entry.inspect,
       )
       refute_includes entry[:suffix], PREFIX
@@ -374,7 +512,7 @@ class Test_search < Test::Unit::TestCase
     prefix.wipe if prefix
   end
 
-  def test_tracing_on_default_pantheios_sink_gets_suffix_not_prefix
+  def test_tracing_on_default_sink_gets_suffix_not_prefix
 
     prefix = prefix_buffer
     unlock, _calls = scripted_unlock([ :auth_failed, :success ])
